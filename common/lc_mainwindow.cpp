@@ -373,7 +373,7 @@ void lcMainWindow::CreateActions()
 
 void lcMainWindow::CreateMenus()
 {
-	QMenu* TransformMenu = new QMenu(tr("Transform"), this);
+    QMenu* TransformMenu = new QMenu(tr("Tran&sform"), this);
 	TransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_RELATIVE_TRANSLATION]);
 	TransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_ABSOLUTE_TRANSLATION]);
 	TransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_RELATIVE_ROTATION]);
@@ -395,7 +395,7 @@ void lcMainWindow::CreateMenus()
 	mViewpointMenu->addAction(mActions[LC_VIEW_VIEWPOINT_BOTTOM]);
 	mViewpointMenu->addAction(mActions[LC_VIEW_VIEWPOINT_HOME]);
 
-	mProjectionMenu = new QMenu(tr("Projection"), this);
+    mProjectionMenu = new QMenu(tr("Pro&jection"), this);
 	mProjectionMenu->addAction(mActions[LC_VIEW_PROJECTION_PERSPECTIVE]);
 	mProjectionMenu->addAction(mActions[LC_VIEW_PROJECTION_ORTHO]);
 
@@ -404,7 +404,7 @@ void lcMainWindow::CreateMenus()
 	mShadingMenu->addAction(mActions[LC_VIEW_SHADING_FLAT]);
 	mShadingMenu->addAction(mActions[LC_VIEW_SHADING_DEFAULT_LIGHTS]);
 
-	mToolsMenu = new QMenu(tr("Tools"), this);
+    mToolsMenu = new QMenu(tr("T&ools"), this);
 	mToolsMenu->addAction(mActions[LC_EDIT_ACTION_INSERT]);
 	mToolsMenu->addAction(mActions[LC_EDIT_ACTION_LIGHT]);
 	mToolsMenu->addAction(mActions[LC_EDIT_ACTION_SPOTLIGHT]);
@@ -565,7 +565,7 @@ void lcMainWindow::CreateMenus()
 
 void lcMainWindow::CreateToolBars()
 {
-	mSelectionModeMenu = new QMenu(tr("Selection Mode"), this);
+    mSelectionModeMenu = new QMenu(tr("Selection Mode"), this);
 	for (int ModeIdx = LC_EDIT_SELECTION_MODE_FIRST; ModeIdx <= LC_EDIT_SELECTION_MODE_LAST; ModeIdx++)
 		mSelectionModeMenu->addAction(mActions[ModeIdx]);
 
@@ -574,7 +574,7 @@ void lcMainWindow::CreateToolBars()
 	SelectionModeAction->setIcon(QIcon(":/resources/action_select.png"));
 	SelectionModeAction->setMenu(mSelectionModeMenu);
 
-	mTransformMenu = new QMenu(tr("Transform"), this);
+    mTransformMenu = new QMenu(tr("Tran&sform"), this);
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_RELATIVE]);
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_ABSOLUTE]);
 	mTransformMenu->addSeparator();
