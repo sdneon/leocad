@@ -13,6 +13,7 @@
 #include "lc_view.h"
 #include "lc_glextensions.h"
 #include "lc_category.h"
+#include <QRegularExpression>
 
 Q_DECLARE_METATYPE(QList<int>)
 
@@ -39,7 +40,9 @@ QSize lcPartSelectionItemDelegate::sizeHint(const QStyleOptionViewItem& Option, 
 }
 
 lcPartSelectionListModel::lcPartSelectionListModel(QObject* Parent)
-	: QAbstractListModel(Parent)
+    : QAbstractListModel(Parent),
+      //(size1)x(size2)x(size3) (rest) ->       v-1: size1         v-2: size2            v-3: size3          v-4: rest
+      mpRegexBrickSize(new QRegularExpression("^(\\d+(?:\\.\\d+)?)x(\\d+(?:\\.\\d+)?)(?:x(\\d+(?:\\.\\d+)?))?(\\s+(.*))?"))
 {
 	mListView = (lcPartSelectionListView*)Parent;
 	mIconSize = 0;
@@ -69,6 +72,7 @@ lcPartSelectionListModel::~lcPartSelectionListModel()
 
 	mView.reset();
 	mModel.reset();
+    delete mpRegexBrickSize;
 }
 
 void lcPartSelectionListModel::ClearRequests()
@@ -257,11 +261,47 @@ void lcPartSelectionListModel::SetCurrentModelCategory()
 	SetFilter(mFilter);
 }
 
+boolean MatchAllWords(const char *Description, const QString& Phrase)
+{
+    QStringList words = Phrase.split(QRegExp("\\s+"));
+    for (const auto& w : words)
+    {
+        if (!strcasestr(Description, w.toLocal8Bit()))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 void lcPartSelectionListModel::SetFilter(const QString& Filter)
 {
 	mFilter = Filter.toLatin1();
 
-	for (size_t PartIdx = 0; PartIdx < mParts.size(); PartIdx++)
+    //Support matching brick size specified as #x##x### (i.e. no spaces in between), to match # x ## x ###
+    QRegularExpressionMatch match = mpRegexBrickSize->match(mFilter);
+    QString size, rest;
+    if (match.hasMatch())
+    {
+        QString size1 = match.captured(1),
+                size2 = match.captured(2),
+                size3 = match.captured(3);
+        rest = match.captured(4).trimmed();
+        size = size1 + " x " + size2;
+        if (!size3.isEmpty())
+        {
+            size += " x " + size3;
+        }
+        if (!rest.isEmpty())
+        {
+            mFilter = (size + " " + rest).toLatin1();
+        }
+        else
+        {
+            mFilter = size.toLatin1();
+        }
+    }
+    for (size_t PartIdx = 0; PartIdx < mParts.size(); PartIdx++)
 	{
 		PieceInfo* Info = mParts[PartIdx].first;
 		bool Visible;
@@ -292,6 +332,34 @@ void lcPartSelectionListModel::SetFilter(const QString& Filter)
 			}
 
 			Visible = strcasestr(Description, mFilter) || strcasestr(Info->mFileName, mFilter);
+
+            if (!Visible)
+            {
+                //Alternate lax searches:
+                //1. if no size, match every keyword from Filter
+                if (size.isEmpty())
+                {
+                    Visible = MatchAllWords(Description, Filter);
+                }
+                else if (!rest.isEmpty())
+                {
+                    //2. has size, so match size 1st, then the rest
+                    if (strcasestr(Description, size.toLatin1()))
+                    {
+                        //2a. match the rest (as a phrase)
+                        if (strcasestr(Description, rest.toLatin1()))
+                        {
+                            Visible = true;
+                        }
+                        else
+                        {
+                            //2b. match every keyword from rest
+                            Visible = MatchAllWords(Description, rest);
+                        }
+                    }
+                    //else size doesn't match
+                }
+            }
 		}
 
 		mListView->setRowHidden((int)PartIdx, !Visible);

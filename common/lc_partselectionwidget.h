@@ -28,6 +28,8 @@ struct lcPartPalette
 	std::vector<std::string> Parts;
 };
 
+class QRegularExpression;
+
 class lcPartSelectionItemDelegate : public QStyledItemDelegate
 {
 	Q_OBJECT
@@ -138,6 +140,7 @@ protected:
 	QByteArray mFilter;
 	std::unique_ptr<lcView> mView;
 	std::unique_ptr<lcModel> mModel;
+    QRegularExpression *mpRegexBrickSize;
 };
 
 class lcPartSelectionListView : public QListView

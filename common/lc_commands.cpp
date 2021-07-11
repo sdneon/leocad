@@ -321,14 +321,14 @@ const lcCommand gCommands[] =
     // LC_EDIT_TRANSFORM_RELATIVE
     {
         QT_TRANSLATE_NOOP("Action", "Edit.TransformRelative"),
-        QT_TRANSLATE_NOOP("Menu", "Relative Transforms"),
+        QT_TRANSLATE_NOOP("Menu", "&Relative Transforms"),
         QT_TRANSLATE_NOOP("Status", "Move and rotate objects relative to the one that has focus"),
         ""
     },
     // LC_EDIT_TRANSFORM_ABSOLUTE
     {
         QT_TRANSLATE_NOOP("Action", "Edit.TransformAbsolute"),
-        QT_TRANSLATE_NOOP("Menu", "Absolute Transforms"),
+        QT_TRANSLATE_NOOP("Menu", "&Absolute Transforms"),
         QT_TRANSLATE_NOOP("Status", "Move and rotate objects in absolute coordinates"),
         ""
     },
@@ -342,14 +342,14 @@ const lcCommand gCommands[] =
     // LC_EDIT_TRANSFORM_SEPARATELY
     {
         QT_TRANSLATE_NOOP("Action", "Edit.TransformSeparately"),
-        QT_TRANSLATE_NOOP("Menu", "Rotate Separately"),
+        QT_TRANSLATE_NOOP("Menu", "Rotate &Separately"),
         QT_TRANSLATE_NOOP("Status", "Rotate selected pieces separately"),
         ""
     },
     // LC_EDIT_TRANSFORM_TOGETHER
     {
         QT_TRANSLATE_NOOP("Action", "Edit.TransformTogether"),
-        QT_TRANSLATE_NOOP("Menu", "Rotate Together"),
+        QT_TRANSLATE_NOOP("Menu", "Rotate &Together"),
         QT_TRANSLATE_NOOP("Status", "Rotate selected pieces together"),
         ""
     },
@@ -586,22 +586,22 @@ const lcCommand gCommands[] =
 	},
 	// LC_EDIT_TRANSFORM
 	{
-		QT_TRANSLATE_NOOP("Action", "Edit.Transform"),
-		QT_TRANSLATE_NOOP("Menu", "Transform"),
+        QT_TRANSLATE_NOOP("Action", "Edit.Transform"),
+        QT_TRANSLATE_NOOP("Menu", "Transform"),
 		QT_TRANSLATE_NOOP("Status", "Apply transform to selected objects"),
 		""
 	},
 	// LC_EDIT_TRANSFORM_ABSOLUTE_TRANSLATION
 	{
 		QT_TRANSLATE_NOOP("Action", "Edit.TransformAbsoluteTranslation"),
-		QT_TRANSLATE_NOOP("Menu", "Absolute Translation"),
+        QT_TRANSLATE_NOOP("Menu", "Absolute Translation"),
 		QT_TRANSLATE_NOOP("Status", "Switch to absolute translation mode when applying transforms"),
 		""
 	},
 	// LC_EDIT_TRANSFORM_RELATIVE_TRANSLATION
 	{
 		QT_TRANSLATE_NOOP("Action", "Edit.TransformRelativeTranslation"),
-		QT_TRANSLATE_NOOP("Menu", "Relative Translation"),
+        QT_TRANSLATE_NOOP("Menu", "Relative Translation"),
 		QT_TRANSLATE_NOOP("Status", "Switch to relative translation mode when applying transforms"),
 		""
 	},
@@ -1007,21 +1007,21 @@ const lcCommand gCommands[] =
 	// LC_VIEW_TIME_INSERT_BEFORE
 	{
 		QT_TRANSLATE_NOOP("Action", "View.Time.InsertBefore"),
-		QT_TRANSLATE_NOOP("Menu", "Insert Before"),
+        QT_TRANSLATE_NOOP("Menu", "Insert Before"),
 		QT_TRANSLATE_NOOP("Status", "Insert a new step before the current step"),
 		""
 	},
 	// LC_VIEW_TIME_INSERT_AFTER
 	{
 		QT_TRANSLATE_NOOP("Action", "View.Time.InsertAfter"),
-		QT_TRANSLATE_NOOP("Menu", "Insert After"),
+        QT_TRANSLATE_NOOP("Menu", "Insert After"),
 		QT_TRANSLATE_NOOP("Status", "Insert a new step after the current step"),
 		""
 	},
 	// LC_VIEW_TIME_DELETE
 	{
 		QT_TRANSLATE_NOOP("Action", "View.Time.Delete"),
-		QT_TRANSLATE_NOOP("Menu", "Remove Step"),
+        QT_TRANSLATE_NOOP("Menu", "Remove Step"),
 		QT_TRANSLATE_NOOP("Status", "Remove current step"),
 		""
 	},
@@ -1462,7 +1462,7 @@ const lcCommand gCommands[] =
 	// LC_MODEL_NEW
 	{
 		QT_TRANSLATE_NOOP("Action", "Model.New"),
-		QT_TRANSLATE_NOOP("Menu", "New Submodel..."),
+        QT_TRANSLATE_NOOP("Menu", "&New Submodel..."),
 		QT_TRANSLATE_NOOP("Status", "Create a new submodel"),
 		""
 	},
@@ -1476,7 +1476,7 @@ const lcCommand gCommands[] =
 	// LC_MODEL_LIST
 	{
 		QT_TRANSLATE_NOOP("Action", "Model.List"),
-		QT_TRANSLATE_NOOP("Menu", "Submodels..."),
+        QT_TRANSLATE_NOOP("Menu", "&Submodels..."),
 		QT_TRANSLATE_NOOP("Status", "Show a list of all submodels"),
 		""
 	},
@@ -1791,35 +1791,35 @@ const lcCommand gCommands[] =
 	// LC_TIMELINE_INSERT_BEFORE
 	{
 		"",
-		QT_TRANSLATE_NOOP("Menu", "Insert Step Before"),
+        QT_TRANSLATE_NOOP("Menu", "Insert Step &Before"),
 		QT_TRANSLATE_NOOP("Status", "Insert a new step before the current step"),
 		""
 	},
 	// LC_TIMELINE_INSERT_AFTER
 	{
 		"",
-		QT_TRANSLATE_NOOP("Menu", "Insert Step After"),
+        QT_TRANSLATE_NOOP("Menu", "&Insert Step After"),
 		QT_TRANSLATE_NOOP("Status", "Insert a new step after the current step"),
 		""
 	},
 	// LC_TIMELINE_DELETE
 	{
 		"",
-		QT_TRANSLATE_NOOP("Menu", "Remove Step"),
+        QT_TRANSLATE_NOOP("Menu", "&Remove Step"),
 		QT_TRANSLATE_NOOP("Status", "Remove current step"),
 		""
 	},
 	// LC_TIMELINE_MOVE_SELECTION
 	{
 		"",
-		QT_TRANSLATE_NOOP("Menu", "Move Selection Here"),
+        QT_TRANSLATE_NOOP("Menu", "&Move Selection Here"),
 		QT_TRANSLATE_NOOP("Status", "Move the selected parts into this step"),
 		""
 	},
 	// LC_TIMELINE_SET_CURRENT
 	{
 		"",
-		QT_TRANSLATE_NOOP("Menu", "Set Current Step"),
+        QT_TRANSLATE_NOOP("Menu", "&Set Current Step"),
 		QT_TRANSLATE_NOOP("Status", "View the model at this point in the timeline"),
 		""
 	}
