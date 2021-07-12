@@ -41,8 +41,8 @@ QSize lcPartSelectionItemDelegate::sizeHint(const QStyleOptionViewItem& Option, 
 
 lcPartSelectionListModel::lcPartSelectionListModel(QObject* Parent)
     : QAbstractListModel(Parent),
-      //(size1)x(size2)x(size3) (rest) ->       v-1: size1         v-2: size2            v-3: size3          v-4: rest
-      mpRegexBrickSize(new QRegularExpression("^(\\d+(?:\\.\\d+)?)x(\\d+(?:\\.\\d+)?)(?:x(\\d+(?:\\.\\d+)?))?(\\s+(.*))?"))
+      //(size1)x(size2)x(size3) (rest) ->       v-1: size1                 v-2: size2                    v-3: size3          v-4: rest
+      mpRegexBrickSize(new QRegularExpression("^(\\d+(?:\\.\\d+)?)\\s*x\\s*(\\d+(?:\\.\\d+)?)(?:\\s*x\\s*(\\d+(?:\\.\\d+)?))?(\\s+(.*))?"))
 {
 	mListView = (lcPartSelectionListView*)Parent;
 	mIconSize = 0;
