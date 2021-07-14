@@ -1224,7 +1224,7 @@ const lcCommand gCommands[] =
 	// LC_PIECE_RESET_PIVOT_POINT
 	{
 		QT_TRANSLATE_NOOP("Action", "Piece.ResetPivotPoint"),
-		QT_TRANSLATE_NOOP("Menu", "Reset &Pivot Point"),
+        QT_TRANSLATE_NOOP("Menu", "Reset Pi&vot Point"),
 		QT_TRANSLATE_NOOP("Status", "Reset the pivot point of the selected pieces to their origin"),
 		""
 	},
