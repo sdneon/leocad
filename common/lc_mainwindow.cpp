@@ -373,7 +373,7 @@ void lcMainWindow::CreateActions()
 
 void lcMainWindow::CreateMenus()
 {
-    QMenu* TransformMenu = new QMenu(tr("Tran&sform"), this);
+    QMenu* TransformMenu = new QMenu(tr("Transform and Rotat&e"), this);
 	TransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_RELATIVE_TRANSLATION]);
 	TransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_ABSOLUTE_TRANSLATION]);
 	TransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_RELATIVE_ROTATION]);
@@ -565,23 +565,23 @@ void lcMainWindow::CreateMenus()
 
 void lcMainWindow::CreateToolBars()
 {
-    mSelectionModeMenu = new QMenu(tr("Selection Mode"), this);
+    mSelectionModeMenu = new QMenu(tr("&Selection Mode"), this);
 	for (int ModeIdx = LC_EDIT_SELECTION_MODE_FIRST; ModeIdx <= LC_EDIT_SELECTION_MODE_LAST; ModeIdx++)
 		mSelectionModeMenu->addAction(mActions[ModeIdx]);
 
-	QAction* SelectionModeAction = new QAction(tr("Selection Mode"), this);
+    QAction* SelectionModeAction = new QAction(tr("&Selection Mode"), this);
 	SelectionModeAction->setStatusTip(tr("Change selection mode"));
 	SelectionModeAction->setIcon(QIcon(":/resources/action_select.png"));
 	SelectionModeAction->setMenu(mSelectionModeMenu);
 
-    mTransformMenu = new QMenu(tr("Tran&sform"), this);
+    mTransformMenu = new QMenu(tr("Transform and Rotat&e"), this);
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_RELATIVE]);
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_ABSOLUTE]);
 	mTransformMenu->addSeparator();
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_TOGETHER]);
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_SEPARATELY]);
 
-	QAction* TransformAction = new QAction(tr("Transform"), this);
+    QAction* TransformAction = new QAction(tr("Transform and Rotat&e"), this);
 	TransformAction->setStatusTip(tr("Transform Options"));
 	TransformAction->setIcon(QIcon(":/resources/edit_transform_relative.png"));
 	TransformAction->setMenu(mTransformMenu);

@@ -209,7 +209,7 @@ const lcCommand gCommands[] =
 	// LC_EDIT_PASTE_STEPS
 	{
 		QT_TRANSLATE_NOOP("Action", "Edit.PasteSteps"),
-		QT_TRANSLATE_NOOP("Menu", "Paste with Steps"),
+        QT_TRANSLATE_NOOP("Menu", "Paste &with Steps"),
 		QT_TRANSLATE_NOOP("Status", "Insert Clipboard contents in their original steps"),
 		""
 	},
@@ -244,14 +244,14 @@ const lcCommand gCommands[] =
 	// LC_EDIT_REPLACE
 	{
 		QT_TRANSLATE_NOOP("Action", "Edit.Replace"),
-		QT_TRANSLATE_NOOP("Menu", "&Replace"),
+        QT_TRANSLATE_NOOP("Menu", "Rep&lace"),
 		QT_TRANSLATE_NOOP("Status", "Replace piece"),
 		""
 	},
 	// LC_EDIT_REPLACE_NEXT
 	{
 		QT_TRANSLATE_NOOP("Action", "Edit.ReplaceNext"),
-		QT_TRANSLATE_NOOP("Menu", "Replace Next"),
+        QT_TRANSLATE_NOOP("Menu", "Replace Next"),
 		QT_TRANSLATE_NOOP("Status", "Replace next piece"),
 		""
 	},
@@ -587,7 +587,7 @@ const lcCommand gCommands[] =
 	// LC_EDIT_TRANSFORM
 	{
         QT_TRANSLATE_NOOP("Action", "Edit.Transform"),
-        QT_TRANSLATE_NOOP("Menu", "Transform"),
+        QT_TRANSLATE_NOOP("Menu", "Transform and Rotat&e"),
 		QT_TRANSLATE_NOOP("Status", "Apply transform to selected objects"),
 		""
 	},
