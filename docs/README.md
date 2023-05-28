@@ -1,9 +1,19 @@
-# About LeoCAD
+# About LeoCAD _Mod_
 
 LeoCAD is a CAD program for creating virtual LEGO(R) models. It's available
 for free under the GNU Public License v2 and works on the Windows, Linux
 and macOS Operating Systems.
 
+This repo is my **mod** adding these _**ease of use enhancements**_:
+* Add keyboard shortcuts (**mnemonics**) for menu items. E.g.:
+  * In Timeline: insert steps before, after; move selection here...
+  * Various commands in main menu.
+* **Easier parts search** via Search Parts textfield.
+  * Specify brick sizes without spaces. E.g. key in just 2x2 instead of "2 x 2".
+  * If exact phrase (search text) does not match, also try matching all keywords in search text. So you don't have to know exact phrasing of the part.
+    * E.g. to find "Brick 5 x 5 Corner Round with Slope 45 Chamfer", you don't need to remember and key in "Corner Round with Slope" exactly. Just key in "slope corner" or any of the keywords (even partial keywords) to search for.
+
+Enjoy ",
 
 # Installation
 
