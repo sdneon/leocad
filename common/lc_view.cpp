@@ -412,19 +412,33 @@ lcVector3 lcView::GetMoveDirection(const lcVector3& Direction) const
 
 lcMatrix44 lcView::GetPieceInsertPosition(bool IgnoreSelected, PieceInfo* Info) const
 {
-	lcPiece* HitPiece = (lcPiece*)FindObjectUnderPointer(true, IgnoreSelected).Object;
 	lcModel* ActiveModel = GetActiveModel();
 
-	if (HitPiece)
+	lcPieceInfoRayTest PieceInfoRayTest = FindPieceInfoUnderPointer(IgnoreSelected);
+		
+	if (PieceInfoRayTest.Info)
 	{
-		lcVector3 Position(0, 0, HitPiece->GetBoundingBox().Max.z - Info->GetBoundingBox().Min.z);
+		lcVector3 Position = PieceInfoRayTest.Plane;
+
+		if (Position.x > 0.0f)
+			Position.x += fabsf(Info->GetBoundingBox().Min.x);
+		else if (Position.x < 0.0f)
+			Position.x -= fabsf(Info->GetBoundingBox().Max.x);
+		else if (Position.y > 0.0f)
+			Position.y += fabsf(Info->GetBoundingBox().Min.y);
+		else if (Position.y < 0.0f)
+			Position.y -= fabsf(Info->GetBoundingBox().Max.y);
+		else if (Position.z > 0.0f)
+			Position.z += fabsf(Info->GetBoundingBox().Min.z);
+		else if (Position.z < 0.0f)
+			Position.z -= fabsf(Info->GetBoundingBox().Max.z);
 
 		if (gMainWindow->GetRelativeTransform())
-			Position = lcMul31(ActiveModel->SnapPosition(Position), HitPiece->mModelWorld);
+			Position = lcMul31(ActiveModel->SnapPosition(Position), PieceInfoRayTest.Transform);
 		else
-			Position = ActiveModel->SnapPosition(lcMul31(Position, HitPiece->mModelWorld));
+			Position = ActiveModel->SnapPosition(lcMul31(Position, PieceInfoRayTest.Transform));
 
-		lcMatrix44 WorldMatrix = HitPiece->mModelWorld;
+		lcMatrix44 WorldMatrix = PieceInfoRayTest.Transform;
 		WorldMatrix.SetTranslation(Position);
 
 		return WorldMatrix;
@@ -523,9 +537,6 @@ lcObjectSection lcView::FindObjectUnderPointer(bool PiecesOnly, bool IgnoreSelec
 	ObjectRayTest.ViewCamera = mCamera;
 	ObjectRayTest.Start = StartEnd[0];
 	ObjectRayTest.End = StartEnd[1];
-	ObjectRayTest.Distance = FLT_MAX;
-	ObjectRayTest.ObjectSection.Object = nullptr;
-	ObjectRayTest.ObjectSection.Section = 0;;
 
 	lcModel* ActiveModel = GetActiveModel();
 
@@ -540,6 +551,39 @@ lcObjectSection lcView::FindObjectUnderPointer(bool PiecesOnly, bool IgnoreSelec
 	ActiveModel->RayTest(ObjectRayTest);
 
 	return ObjectRayTest.ObjectSection;
+}
+
+lcPieceInfoRayTest lcView::FindPieceInfoUnderPointer(bool IgnoreSelected) const
+{
+	lcVector3 StartEnd[2] =
+	{
+		lcVector3((float)mMouseX, (float)mMouseY, 0.0f),
+		lcVector3((float)mMouseX, (float)mMouseY, 1.0f)
+	};
+
+	UnprojectPoints(StartEnd, 2);
+
+	lcObjectRayTest ObjectRayTest;
+
+	ObjectRayTest.PiecesOnly = true;
+	ObjectRayTest.IgnoreSelected = IgnoreSelected;
+	ObjectRayTest.ViewCamera = mCamera;
+	ObjectRayTest.Start = StartEnd[0];
+	ObjectRayTest.End = StartEnd[1];
+
+	lcModel* ActiveModel = GetActiveModel();
+
+	if (ActiveModel != mModel)
+	{
+		lcMatrix44 InverseMatrix = lcMatrix44AffineInverse(mActiveSubmodelTransform);
+
+		ObjectRayTest.Start = lcMul31(ObjectRayTest.Start, InverseMatrix);
+		ObjectRayTest.End = lcMul31(ObjectRayTest.End, InverseMatrix);
+	}
+
+	ActiveModel->RayTest(ObjectRayTest);
+
+	return ObjectRayTest.PieceInfoRayTest;
 }
 
 lcArray<lcObject*> lcView::FindObjectsInBox(float x1, float y1, float x2, float y2) const
@@ -808,8 +852,6 @@ void lcView::OnDraw()
 			mContext->SetDefaultState();
 			mContext->SetViewport(0, 0, mWidth, mHeight);
 
-			DrawBackground();
-
 			int CurrentTileWidth, CurrentTileHeight;
 
 			if (!mRenderImage.isNull() && (TotalTileRows > 1 || TotalTileColumns > 1))
@@ -824,6 +866,8 @@ void lcView::OnDraw()
 				else
 					CurrentTileWidth = mRenderImage.width() - (TotalTileColumns - 1) * (mWidth);
 
+				DrawBackground(CurrentTileRow, TotalTileRows, CurrentTileHeight);
+
 				mContext->SetViewport(0, 0, CurrentTileWidth, CurrentTileHeight);
 				mContext->SetProjectionMatrix(GetTileProjectionMatrix(CurrentTileRow, CurrentTileColumn, CurrentTileWidth, CurrentTileHeight));
 			}
@@ -831,6 +875,8 @@ void lcView::OnDraw()
 			{
 				CurrentTileWidth = mWidth;
 				CurrentTileHeight = mHeight;
+
+				DrawBackground(CurrentTileRow, TotalTileRows, CurrentTileHeight);
 
 				mContext->SetProjectionMatrix(GetProjectionMatrix());
 			}
@@ -925,13 +971,13 @@ void lcView::OnDraw()
 	mContext->SetColor(lcVector4FromColor(lcGetPreferences().mTextColor));
 	mContext->BindTexture2D(gTexFont.GetTexture());
 
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
+	mContext->EnableDepthTest(false);
+	mContext->EnableColorBlend(true);
 
 	gTexFont.PrintText(mContext, 3.0f, (float)mHeight - 1.0f - 6.0f, 0.0f, Line.toLatin1().constData());
 
-	glDisable(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
+	mContext->EnableColorBlend(false);
+	mContext->EnableDepthTest(true);
 
 	Redraw();
 #endif
@@ -939,7 +985,7 @@ void lcView::OnDraw()
 	mContext->ClearResources();
 }
 
-void lcView::DrawBackground() const
+void lcView::DrawBackground(int CurrentTileRow, int TotalTileRows, int CurrentTileHeight) const
 {
 	if (mOverrideBackgroundColor)
 	{
@@ -960,19 +1006,49 @@ void lcView::DrawBackground() const
 	mContext->ClearDepth();
 
 	mContext->SetDepthWrite(false);
-	glDisable(GL_DEPTH_TEST);
+	mContext->EnableDepthTest(false);
 
 	float ViewWidth = (float)mWidth;
 	float ViewHeight = (float)mHeight;
 
 	mContext->SetWorldMatrix(lcMatrix44Identity());
-	mContext->SetViewMatrix(lcMatrix44Translation(lcVector3(0.375, 0.375, 0.0)));
+	mContext->SetViewMatrix(lcMatrix44Identity());
 	mContext->SetProjectionMatrix(lcMatrix44Ortho(0.0f, ViewWidth, 0.0f, ViewHeight, -1.0f, 1.0f));
 
-	mContext->SetSmoothShading(true);
+	const int TotalHeight = TotalTileRows == 1 ? mHeight : mRenderImage.height();
+	const quint32 TopY = CurrentTileRow * mHeight + CurrentTileHeight;
 
-	const quint32 Color1 = Preferences.mBackgroundGradientColorTop;
-	const quint32 Color2 = Preferences.mBackgroundGradientColorBottom;
+	const double t1 = 1.0 - (double)TopY / (double)TotalHeight;
+	const double t2 = 1.0 - (double)(TopY - CurrentTileHeight) / (double)TotalHeight;
+
+	const quint32 ColorTop = Preferences.mBackgroundGradientColorTop;
+	const quint32 ColorBottom = Preferences.mBackgroundGradientColorBottom;
+
+	double TopRed = LC_RGBA_RED(ColorTop);
+	double TopGreen = LC_RGBA_GREEN(ColorTop);
+	double TopBlue = LC_RGBA_BLUE(ColorTop);
+	double TopAlpha = LC_RGBA_ALPHA(ColorTop);
+	double BottomRed = LC_RGBA_RED(ColorBottom);
+	double BottomGreen = LC_RGBA_GREEN(ColorBottom);
+	double BottomBlue = LC_RGBA_BLUE(ColorBottom);
+	double BottomAlpha = LC_RGBA_ALPHA(ColorBottom);
+	const double DeltaRed = BottomRed - TopRed;
+	const double DeltaGreen = BottomGreen - TopGreen;
+	const double DeltaBlue = BottomBlue - TopBlue;
+	const double DeltaAlpha = BottomAlpha - TopAlpha;
+
+	BottomRed = TopRed + DeltaRed * t2;
+	BottomGreen = TopGreen + DeltaGreen * t2;
+	BottomBlue = TopBlue + DeltaBlue * t2;
+	BottomAlpha = TopAlpha + DeltaAlpha * t2;
+
+	TopRed = TopRed + DeltaRed * t1;
+	TopGreen = TopGreen + DeltaGreen * t1;
+	TopBlue = TopBlue + DeltaBlue * t1;
+	TopAlpha = TopAlpha + DeltaAlpha * t1;
+
+	const quint32 Color1 = LC_RGBA(TopRed, TopGreen, TopBlue, TopAlpha);
+	const quint32 Color2 = LC_RGBA(BottomRed, BottomGreen, BottomBlue, BottomAlpha);
 
 	struct lcBackgroundVertex
 	{
@@ -991,9 +1067,7 @@ void lcView::DrawBackground() const
 
 	mContext->DrawPrimitives(GL_TRIANGLE_FAN, 0, 4);
 
-	mContext->SetSmoothShading(false);
-
-	glEnable(GL_DEPTH_TEST);
+	mContext->EnableDepthTest(true);
 	mContext->SetDepthWrite(true);
 }
 
@@ -1005,7 +1079,7 @@ void lcView::DrawViewport() const
 	mContext->SetLineWidth(1.0f);
 
 	mContext->SetDepthWrite(false);
-	glDisable(GL_DEPTH_TEST);
+	mContext->EnableDepthTest(false);
 
 	mContext->SetMaterial(lcMaterialType::UnlitColor);
 
@@ -1028,15 +1102,15 @@ void lcView::DrawViewport() const
 		mContext->SetColor(lcVector4FromColor(lcGetPreferences().mTextColor));
 		mContext->BindTexture2D(gTexFont.GetTexture());
 
-		glEnable(GL_BLEND);
+		mContext->EnableColorBlend(true);
 
 		gTexFont.PrintText(mContext, 3.0f, (float)mHeight - 1.0f - 6.0f, 0.0f, CameraName.toLatin1().constData());
 
-		glDisable(GL_BLEND);
+		mContext->EnableColorBlend(false);
 	}
 
 	mContext->SetDepthWrite(true);
-	glEnable(GL_DEPTH_TEST);
+	mContext->EnableDepthTest(true);
 }
 
 void lcView::DrawAxes() const
@@ -1131,7 +1205,7 @@ void lcView::DrawAxes() const
 	mContext->SetMaterial(lcMaterialType::UnlitTextureModulate);
 	mContext->SetViewMatrix(TranslationMatrix);
 	mContext->BindTexture2D(gTexFont.GetTexture());
-	glEnable(GL_BLEND);
+	mContext->EnableColorBlend(true);
 
 	float TextBuffer[6 * 5 * 3];
 	lcVector3 PosX = lcMul30(lcVector3(25.0f, 0.0f, 0.0f), WorldViewMatrix);
@@ -1147,7 +1221,7 @@ void lcView::DrawAxes() const
 	mContext->SetColor(lcVector4FromColor(lcGetPreferences().mAxesColor));
 	mContext->DrawPrimitives(GL_TRIANGLES, 0, 6 * 3);
 
-	glDisable(GL_BLEND);
+	mContext->EnableColorBlend(false);
 }
 
 void lcView::DrawSelectZoomRegionOverlay()
@@ -1158,7 +1232,7 @@ void lcView::DrawSelectZoomRegionOverlay()
 	mContext->SetProjectionMatrix(lcMatrix44Ortho(0.0f, mWidth, 0.0f, mHeight, -1.0f, 1.0f));
 	mContext->SetLineWidth(1.0f);
 
-	glDisable(GL_DEPTH_TEST);
+	mContext->EnableDepthTest(false);
 
 	float pt1x = (float)mMouseDownX;
 	float pt1y = (float)mMouseDownY;
@@ -1225,13 +1299,13 @@ void lcView::DrawSelectZoomRegionOverlay()
 
 	if (LC_RGBA_ALPHA(Preferences.mMarqueeFillColor))
 	{
-		glEnable(GL_BLEND);
+		mContext->EnableColorBlend(true);
 		mContext->SetColor(lcVector4FromColor(Preferences.mMarqueeFillColor));
 		mContext->DrawPrimitives(GL_TRIANGLE_STRIP, 10, 4);
-		glDisable(GL_BLEND);
+		mContext->EnableColorBlend(false);
 	}
 
-	glEnable(GL_DEPTH_TEST);
+	mContext->EnableDepthTest(true);
 }
 
 void lcView::DrawRotateViewOverlay()
@@ -1249,7 +1323,7 @@ void lcView::DrawRotateViewOverlay()
 	mContext->SetProjectionMatrix(lcMatrix44Ortho(0, w, 0, h, -1, 1));
 	mContext->SetLineWidth(1.0f);
 
-	glDisable(GL_DEPTH_TEST);
+	mContext->EnableDepthTest(false);
 	mContext->SetColor(lcVector4FromColor(lcGetPreferences().mOverlayColor));
 
 	float Verts[32 * 16 * 2];
@@ -1298,7 +1372,7 @@ void lcView::DrawRotateViewOverlay()
 	mContext->SetIndexBufferPointer(Indices);
 	mContext->DrawIndexedPrimitives(GL_LINES, 96, GL_UNSIGNED_SHORT, 0);
 
-	glEnable(GL_DEPTH_TEST);
+	mContext->EnableDepthTest(true);
 }
 
 void lcView::DrawGrid()
@@ -1455,9 +1529,9 @@ void lcView::DrawGrid()
 
 	if (Preferences.mDrawGridStuds)
 	{
-		mContext->BindTexture2D(gGridTexture->mTexture);
+		mContext->BindTexture2D(gGridTexture);
 		mContext->SetDepthWrite(false);
-		glEnable(GL_BLEND);
+		mContext->EnableColorBlend(true);
 
 		mContext->SetMaterial(lcMaterialType::UnlitTextureModulate);
 		mContext->SetColor(lcVector4FromColor(Preferences.mGridStudColor));
@@ -1465,7 +1539,7 @@ void lcView::DrawGrid()
 		mContext->SetVertexFormat(0, 3, 0, 2, 0, false);
 		mContext->DrawPrimitives(GL_TRIANGLE_STRIP, 0, 4);
 
-		glDisable(GL_BLEND);
+		mContext->EnableColorBlend(false);
 		mContext->SetDepthWrite(true);
 
 		BufferOffset = 4 * 5 * sizeof(float);
@@ -2104,6 +2178,73 @@ void lcView::StartOrbitTracking()
 	OnButtonDown(lcTrackButton::Left);
 }
 
+void lcView::StartPanGesture()
+{
+	lcModel* ActiveModel = GetActiveModel();
+
+	StartPan(mWidth / 2, mHeight / 2);
+	ActiveModel->BeginMouseTool();
+}
+
+void lcView::UpdatePanGesture(int dx, int dy)
+{
+	UpdatePan(mPanX + dx, mPanY + dy);
+}
+
+void lcView::StartPan(int x, int y)
+{
+	mPanX = x;
+	mPanY = y;
+}
+
+void lcView::UpdatePan(int x, int y)
+{
+	if (x == mPanX && y == mPanY)
+		return;
+
+	lcModel* ActiveModel = GetActiveModel();
+
+	lcVector3 Points[4] =
+	{
+	    lcVector3((float)x, (float)y, 0.0f),
+	    lcVector3((float)x, (float)y, 1.0f),
+	    lcVector3(mPanX, mPanY, 0.0f),
+	    lcVector3(mPanX, mPanY, 1.0f)
+	};
+
+	UnprojectPoints(Points, 4);
+
+	const lcVector3& CurrentStart = Points[0];
+	const lcVector3& CurrentEnd = Points[1];
+	const lcVector3& MouseDownStart = Points[2];
+	const lcVector3& MouseDownEnd = Points[3];
+	lcVector3 Center = ActiveModel->GetSelectionOrModelCenter();
+
+	lcVector3 PlaneNormal(mCamera->mPosition - mCamera->mTargetPosition);
+	lcVector4 Plane(PlaneNormal, -lcDot(PlaneNormal, Center));
+	lcVector3 Intersection, MoveStart;
+
+	if (!lcLineSegmentPlaneIntersection(&Intersection, CurrentStart, CurrentEnd, Plane) || !lcLineSegmentPlaneIntersection(&MoveStart, MouseDownStart, MouseDownEnd, Plane))
+	{
+		Center = MouseDownStart + lcNormalize(MouseDownEnd - MouseDownStart) * 10.0f;
+		Plane = lcVector4(PlaneNormal, -lcDot(PlaneNormal, Center));
+
+		if (!lcLineSegmentPlaneIntersection(&Intersection, CurrentStart, CurrentEnd, Plane) || !lcLineSegmentPlaneIntersection(&MoveStart, MouseDownStart, MouseDownEnd, Plane))
+			return;
+	}
+
+	mPanX = x;
+	mPanY = y;
+
+	ActiveModel->UpdatePanTool(mCamera, MoveStart - Intersection);
+}
+
+void lcView::EndPanGesture(bool Accept)
+{
+	lcModel* ActiveModel = GetActiveModel();
+
+	ActiveModel->EndMouseTool(lcTool::Pan, Accept);
+}
 
 void lcView::StartTracking(lcTrackButton TrackButton)
 {
@@ -2149,8 +2290,12 @@ void lcView::StartTracking(lcTrackButton TrackButton)
 		case lcTool::ColorPicker:
 			break;
 
-		case lcTool::Zoom:
-		case lcTool::Pan:
+	    case lcTool::Pan:
+		    StartPan(mMouseX, mMouseY);
+			ActiveModel->BeginMouseTool();
+		    break;
+
+	    case lcTool::Zoom:
 		case lcTool::RotateView:
 		case lcTool::Roll:
 			ActiveModel->BeginMouseTool();
@@ -2790,38 +2935,7 @@ void lcView::OnMouseMove()
 		break;
 
 	case lcTrackTool::Pan:
-		{
-			lcVector3 Points[4] =
-			{
-				lcVector3((float)mMouseX, (float)mMouseY, 0.0f),
-				lcVector3((float)mMouseX, (float)mMouseY, 1.0f),
-				lcVector3(mMouseDownX, mMouseDownY, 0.0f),
-				lcVector3(mMouseDownX, mMouseDownY, 1.0f)
-			};
-
-			UnprojectPoints(Points, 4);
-
-			const lcVector3& CurrentStart = Points[0];
-			const lcVector3& CurrentEnd = Points[1];
-			const lcVector3& MouseDownStart = Points[2];
-			const lcVector3& MouseDownEnd = Points[3];
-			lcVector3 Center = ActiveModel->GetSelectionOrModelCenter();
-
-			lcVector3 PlaneNormal(mCamera->mPosition - mCamera->mTargetPosition);
-			lcVector4 Plane(PlaneNormal, -lcDot(PlaneNormal, Center));
-			lcVector3 Intersection, MoveStart;
-
-			if (!lcLineSegmentPlaneIntersection(&Intersection, CurrentStart, CurrentEnd, Plane) || !lcLineSegmentPlaneIntersection(&MoveStart, MouseDownStart, MouseDownEnd, Plane))
-			{
-				Center = MouseDownStart + lcNormalize(MouseDownEnd - MouseDownStart) * 10.0f;
-				Plane = lcVector4(PlaneNormal, -lcDot(PlaneNormal, Center));
-
-				if (!lcLineSegmentPlaneIntersection(&Intersection, CurrentStart, CurrentEnd, Plane) || !lcLineSegmentPlaneIntersection(&MoveStart, MouseDownStart, MouseDownEnd, Plane))
-					break;
-			}
-
-			ActiveModel->UpdatePanTool(mCamera, MoveStart - Intersection);
-		}
+		UpdatePan(mMouseX, mMouseY);
 		break;
 
 	case lcTrackTool::OrbitX:
@@ -2851,5 +2965,12 @@ void lcView::OnMouseMove()
 
 void lcView::OnMouseWheel(float Direction)
 {
-	mModel->Zoom(mCamera, (int)(((mMouseModifiers & Qt::ControlModifier) ? 100 : 10) * Direction));
+	float Scale = 10.0f;
+
+	if (mMouseModifiers & Qt::ControlModifier)
+		Scale = 100.0f;
+	else if (mMouseModifiers & Qt::ShiftModifier)
+		Scale = 1.0f;
+
+	mModel->Zoom(mCamera, static_cast<int>(Direction * Scale));
 }

@@ -76,7 +76,9 @@ public:
 	~lcMesh();
 
 	lcMesh(const lcMesh&) = delete;
+	lcMesh(lcMesh&&) = delete;
 	lcMesh& operator=(const lcMesh&) = delete;
+	lcMesh& operator=(lcMesh&&) = delete;
 
 	void Create(quint16 (&NumSections)[LC_NUM_MESH_LODS], int VertexCount, int TexturedVertexCount, int ConditionalVertexCount, int IndexCount);
 	void CreateBox();
@@ -93,8 +95,8 @@ public:
 	void ExportWavefrontIndices(lcFile& File, int DefaultColorIndex, int VertexOffset);
 
 	template<typename IndexType>
-	bool MinIntersectDist(const lcVector3& Start, const lcVector3& End, float& MinDist);
-	bool MinIntersectDist(const lcVector3& Start, const lcVector3& End, float& MinDist);
+	bool MinIntersectDist(const lcVector3& Start, const lcVector3& End, float& MinDist, lcVector3& HitPlane);
+	bool MinIntersectDist(const lcVector3& Start, const lcVector3& End, float& MinDist, lcVector3& HitPlane);
 
 	template<typename IndexType>
 	bool IntersectsPlanes(const lcVector4 (&Planes)[6]);

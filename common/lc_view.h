@@ -108,7 +108,9 @@ public:
 	~lcView();
 
 	lcView(const lcView&) = delete;
+	lcView(lcView&&) = delete;
 	lcView& operator=(const lcView&) = delete;
+	lcView& operator=(lcView&&) = delete;
 
 	static lcFindReplaceParams& GetFindReplaceParams()
 	{
@@ -225,6 +227,9 @@ public:
 	void EndDrag(bool Accept);
 
 	void UpdateCursor();
+	void StartPanGesture();
+	void UpdatePanGesture(int dx, int dy);
+	void EndPanGesture(bool Accept);
 	void StartOrbitTracking();
 	void CancelTrackingOrClearSelection();
 
@@ -254,6 +259,7 @@ public:
 	lcVector3 GetCameraLightInsertPosition() const;
 	void GetRayUnderPointer(lcVector3& Start, lcVector3& End) const;
 	lcObjectSection FindObjectUnderPointer(bool PiecesOnly, bool IgnoreSelected) const;
+	lcPieceInfoRayTest FindPieceInfoUnderPointer(bool IgnoreSelected) const;
 	lcArray<lcObject*> FindObjectsInBox(float x1, float y1, float x2, float y2) const;
 
 	lcVector3 ProjectPoint(const lcVector3& Point) const;
@@ -277,7 +283,7 @@ signals:
 	void CameraChanged();
 
 protected:
-	void DrawBackground() const;
+	void DrawBackground(int CurrentTileRow, int TotalTileRows, int CurrentTileHeight) const;
 	void DrawViewport() const;
 	void DrawAxes() const;
 
@@ -295,6 +301,8 @@ protected:
 	void StartTracking(lcTrackButton TrackButton);
 	void StopTracking(bool Accept);
 	void OnButtonDown(lcTrackButton TrackButton);
+	void StartPan(int x, int y);
+	void UpdatePan(int x, int y);
 
 	lcViewWidget* mWidget = nullptr;
 	int mWidth = 1;
@@ -318,6 +326,8 @@ protected:
 	bool mTrackToolFromOverlay;
 	lcVector3 mMouseDownPosition;
 	PieceInfo* mMouseDownPiece;
+	int mPanX = 0;
+	int mPanY = 0;
 
 	QImage mRenderImage;
 	std::unique_ptr<QOpenGLFramebufferObject> mRenderFramebuffer;

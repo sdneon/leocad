@@ -14,11 +14,11 @@ enum class lcPieceInfoType
 
 #define LC_PIECE_NAME_LEN 256
 
-enum lcPieceInfoState
+enum class lcPieceInfoState
 {
-	LC_PIECEINFO_UNLOADED,
-	LC_PIECEINFO_LOADING,
-	LC_PIECEINFO_LOADED
+	Unloaded,
+	Loading,
+	Loaded
 };
 
 struct lcModelPartsEntry
@@ -158,6 +158,7 @@ public:
 		return (m_strDescription[0] == '~');
 	}
 
+	bool IsProjectPiece() const;
 	void ZoomExtents(float FoV, float AspectRatio, lcMatrix44& ProjectionMatrix, lcMatrix44& ViewMatrix) const;
 	void AddRenderMesh(lcScene& Scene);
 	void AddRenderMeshes(lcScene* Scene, const lcMatrix44& WorldMatrix, int ColorIndex, lcRenderMeshState RenderMeshState, bool ParentActive) const;
@@ -169,7 +170,7 @@ public:
 	void CreateProject(Project* Project, const char* PieceName);
 	bool GetPieceWorldMatrix(lcPiece* Piece, lcMatrix44& WorldMatrix) const;
 	bool IncludesModel(const lcModel* Model) const;
-	bool MinIntersectDist(const lcVector3& Start, const lcVector3& End, float& MinDistance) const;
+	bool MinIntersectDist(const lcVector3& Start, const lcVector3& End, float& MinDistance, lcPieceInfoRayTest& PieceInfoRayTest) const;
 	bool BoxTest(const lcMatrix44& WorldMatrix, const lcVector4 Planes[6]) const;
 	void GetPartsList(int DefaultColorIndex, bool ScanSubModels, bool AddSubModels, lcPartsList& PartsList) const;
 	void GetModelParts(const lcMatrix44& WorldMatrix, int DefaultColorIndex, std::vector<lcModelPartsEntry>& ModelParts) const;

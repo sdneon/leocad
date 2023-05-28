@@ -47,9 +47,12 @@ lcContext::lcContext()
 	mPolygonOffset = lcPolygonOffset::None;
 	mDepthWrite = true;
 	mDepthFunction = lcDepthFunction::LessEqual;
+	mDepthTest = true;
+	mColorWrite = true;
+	mColorBlend = false;
 	mCullFace = false;
 	mLineWidth = 1.0f;
-#ifndef LC_OPENGLES
+#if LC_FIXED_FUNCTION
 	mMatrixMode = GL_MODELVIEW;
 	mTextureEnabled = false;
 #endif
@@ -89,7 +92,6 @@ bool lcContext::InitializeRenderer()
 
 	lcInitializeGLExtensions(mOffscreenContext.get());
 
-	// TODO: Find a better place for the grid texture and font
 	gStringCache.Initialize(Context);
 	gTexFont.Initialize(Context);
 
@@ -320,7 +322,7 @@ void lcContext::CreateShaderPrograms()
 		mPrograms[MaterialType].EyePositionLocation = glGetUniformLocation(Program, "EyePosition");
 		mPrograms[MaterialType].HighlightParamsLocation = glGetUniformLocation(Program, "HighlightParams");
 
-		GLint TextureLocation = glGetUniformLocation(Program, "Texture");
+		const GLint TextureLocation = glGetUniformLocation(Program, "Texture");
 
 		if (TextureLocation != -1)
 		{
@@ -381,8 +383,16 @@ void lcContext::SetDefaultState()
 #endif
 
 	glEnable(GL_DEPTH_TEST);
+	mDepthTest = true;
+
 	glDepthFunc(GL_LEQUAL);
 	mDepthFunction = lcDepthFunction::LessEqual;
+
+	mColorWrite = true;
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+	mColorBlend = false;
+	glDisable(GL_BLEND);
 
 	if (gSupportsBlendFuncSeparate)
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
@@ -409,7 +419,7 @@ void lcContext::SetDefaultState()
 	}
 	else
 	{
-#ifndef LC_OPENGLES
+#if LC_FIXED_FUNCTION
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glDisableClientState(GL_NORMAL_ARRAY);
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -459,7 +469,7 @@ void lcContext::SetDefaultState()
 	}
 	else
 	{
-#ifndef LC_OPENGLES
+#if LC_FIXED_FUNCTION
 		glMatrixMode(GL_MODELVIEW);
 		mMatrixMode = GL_MODELVIEW;
 		glShadeModel(GL_FLAT);
@@ -485,7 +495,7 @@ void lcContext::ClearResources()
 {
 	ClearVertexBuffer();
 	ClearIndexBuffer();
-	BindTexture2D(0);
+	ClearTexture2D();
 }
 
 void lcContext::SetMaterial(lcMaterialType MaterialType)
@@ -505,7 +515,7 @@ void lcContext::SetMaterial(lcMaterialType MaterialType)
 	}
 	else
 	{
-#ifndef LC_OPENGLES
+#if LC_FIXED_FUNCTION
 		switch (MaterialType)
 		{
 		case lcMaterialType::UnlitTextureModulate:
@@ -606,6 +616,45 @@ void lcContext::SetDepthFunction(lcDepthFunction DepthFunction)
 	mDepthFunction = DepthFunction;
 }
 
+void lcContext::EnableDepthTest(bool Enable)
+{
+	if (Enable == mDepthTest)
+		return;
+
+	if (Enable)
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+
+	mDepthTest = Enable;
+}
+
+void lcContext::EnableColorWrite(bool Enable)
+{
+	if (Enable == mColorWrite)
+		return;
+
+	if (Enable)
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	else
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+	mColorWrite = Enable;
+}
+
+void lcContext::EnableColorBlend(bool Enable)
+{
+	if (Enable == mColorBlend)
+		return;
+
+	if (Enable)
+		glEnable(GL_BLEND);
+	else
+		glDisable(GL_BLEND);
+
+	mColorBlend = Enable;
+}
+
 void lcContext::EnableCullFace(bool Enable)
 {
 	if (Enable == mCullFace)
@@ -628,48 +677,163 @@ void lcContext::SetLineWidth(float LineWidth)
 	mLineWidth = LineWidth;
 }
 
-void lcContext::SetSmoothShading(bool Smooth)
+void lcContext::BindTexture2D(const lcTexture* Texture)
 {
-#ifndef LC_OPENGLES
-	if (gSupportsShaderObjects)
-		glShadeModel(Smooth ? GL_SMOOTH : GL_FLAT);
-#endif
-}
+	GLuint TextureObject = Texture->mTexture;
 
-void lcContext::BindTexture2D(GLuint Texture)
-{
-	if (mTexture2D == Texture)
+	if (mTexture2D == TextureObject)
 		return;
 
-	glBindTexture(GL_TEXTURE_2D, Texture);
-	mTexture2D = Texture;
+	glBindTexture(GL_TEXTURE_2D, TextureObject);
+	mTexture2D = TextureObject;
 }
 
-void lcContext::BindTextureCubeMap(GLuint Texture)
+void lcContext::BindTextureCubeMap(const lcTexture* Texture)
 {
-	if (mTextureCubeMap == Texture)
+	GLuint TextureObject = Texture->mTexture;
+
+	if (mTextureCubeMap == TextureObject)
 		return;
 
-	glBindTexture(GL_TEXTURE_CUBE_MAP, Texture);
-	mTextureCubeMap = Texture;
+	glBindTexture(GL_TEXTURE_CUBE_MAP, TextureObject);
+	mTextureCubeMap = TextureObject;
 }
 
-void lcContext::UnbindTexture2D(GLuint Texture)
+void lcContext::ClearTexture2D()
 {
-	if (mTexture2D != Texture)
+	if (mTexture2D == 0)
 		return;
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	mTexture2D = 0;
 }
 
-void lcContext::UnbindTextureCubeMap(GLuint Texture)
+void lcContext::ClearTextureCubeMap()
 {
-	if (mTextureCubeMap != Texture)
+	if (mTexture2D == 0)
 		return;
 
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	mTextureCubeMap = 0;
+}
+
+void lcContext::UploadTexture(lcTexture* Texture)
+{
+	if (!Texture->mTexture)
+		glGenTextures(1, &Texture->mTexture);
+
+	constexpr int Filters[2][5] =
+	{
+		{ GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_NEAREST, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR },
+		{ GL_NEAREST, GL_LINEAR, GL_LINEAR, GL_LINEAR, GL_LINEAR  },
+	};
+
+	const int Flags = Texture->GetFlags();
+	const int FilterFlags = Flags & LC_TEXTURE_FILTER_MASK;
+	const int FilterIndex = FilterFlags >> LC_TEXTURE_FILTER_SHIFT;
+	const int MipIndex = Flags & LC_TEXTURE_MIPMAPS ? 0 : 1;
+
+	unsigned int Faces, Target;
+
+	if ((Flags & LC_TEXTURE_CUBEMAP) == 0)
+	{
+		Faces = 1;
+		Target = GL_TEXTURE_2D;
+		BindTexture2D(Texture);
+	}
+	else
+	{
+		Faces = 6;
+		Target = GL_TEXTURE_CUBE_MAP;
+		BindTextureCubeMap(Texture);
+	}
+
+	glTexParameteri(Target, GL_TEXTURE_WRAP_S, (Flags & LC_TEXTURE_WRAPU) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+	glTexParameteri(Target, GL_TEXTURE_WRAP_T, (Flags & LC_TEXTURE_WRAPV) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+	glTexParameteri(Target, GL_TEXTURE_MIN_FILTER, Filters[MipIndex][FilterIndex]);
+	glTexParameteri(Target, GL_TEXTURE_MAG_FILTER, Filters[1][FilterIndex]);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	if (gSupportsAnisotropic && FilterFlags == LC_TEXTURE_ANISOTROPIC)
+		glTexParameterf(Target, GL_TEXTURE_MAX_ANISOTROPY_EXT, lcMin(4.0f, gMaxAnisotropy));
+
+	int Format;
+	switch (Texture->GetImage(0).mFormat)
+	{
+	default:
+	case lcPixelFormat::Invalid:
+		Format = 0;
+		break;
+	case lcPixelFormat::A8:
+		Format = GL_ALPHA;
+		break;
+	case lcPixelFormat::L8A8:
+		Format = GL_LUMINANCE_ALPHA;
+		break;
+	case lcPixelFormat::R8G8B8:
+		Format = GL_RGB;
+		break;
+	case lcPixelFormat::R8G8B8A8:
+		Format = GL_RGBA;
+		break;
+	}
+
+	int CurrentImage = 0;
+	if (Flags & LC_TEXTURE_CUBEMAP)
+		Target = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+
+	for (size_t FaceIdx = 0; FaceIdx < Faces; FaceIdx++)
+	{
+		void* Data = Texture->GetImage(CurrentImage).mData;
+		glTexImage2D(Target, 0, Format, Texture->mWidth, Texture->mHeight, 0, Format, GL_UNSIGNED_BYTE, Data);
+
+		if (Flags & LC_TEXTURE_MIPMAPS || FilterFlags >= LC_TEXTURE_BILINEAR)
+		{
+			int Width = Texture->mWidth;
+			int Height = Texture->mHeight;
+			int Components = Texture->GetImage(CurrentImage).GetBPP();
+
+			for (int Level = 1; ((Width != 1) || (Height != 1)); Level++)
+			{
+				int RowStride = Width * Components;
+
+				Width = lcMax(1, Width >> 1);
+				Height = lcMax(1, Height >> 1);
+
+				if (Texture->GetImageCount() == Faces)
+				{
+					GLubyte* Out, * In;
+
+					In = Out = (GLubyte*)Data;
+
+					for (int y = 0; y < Height; y++, In += RowStride)
+						for (int x = 0; x < Width; x++, Out += Components, In += 2 * Components)
+							for (int c = 0; c < Components; c++)
+								Out[c] = (In[c] + In[c + Components] + In[RowStride] + In[c + RowStride + Components]) / 4;
+				}
+				else
+					Data = Texture->GetImage(++CurrentImage).mData;
+
+				glTexImage2D(Target, Level, Format, Width, Height, 0, Format, GL_UNSIGNED_BYTE, Data);
+			}
+
+			if (Texture->GetImageCount() == Faces)
+				CurrentImage++;
+		}
+		else
+			CurrentImage++;
+
+		Target++;
+	}
+
+	if ((Flags & LC_TEXTURE_CUBEMAP) == 0)
+		ClearTexture2D();
+	else
+		ClearTextureCubeMap();
 }
 
 void lcContext::SetColor(float Red, float Green, float Blue, float Alpha)
@@ -682,9 +846,9 @@ void lcContext::SetColorIndex(int ColorIndex)
 	SetColor(gColorList[ColorIndex].Value);
 }
 
-void lcContext::SetColorIndexTinted(int ColorIndex, lcInterfaceColor InterfaceColor, float Weight)
+void lcContext::SetColorIndexTinted(int ColorIndex, const lcVector4& Tint, float Weight)
 {
-	const lcVector3 Color(gColorList[ColorIndex].Value * Weight + gInterfaceColors[InterfaceColor] * (1.0f - Weight));
+	const lcVector3 Color(gColorList[ColorIndex].Value * Weight + Tint * (1.0f - Weight));
 	SetColor(lcVector4(Color, gColorList[ColorIndex].Value.w));
 }
 
@@ -701,11 +865,6 @@ void lcContext::SetEdgeColorIndex(int ColorIndex)
 void lcContext::SetEdgeColorIndexTinted(int ColorIndex, const lcVector4& Tint)
 {
 	SetColor(gColorList[ColorIndex].Edge * Tint);
-}
-
-void lcContext::SetInterfaceColor(lcInterfaceColor InterfaceColor)
-{
-	SetColor(gInterfaceColors[InterfaceColor]);
 }
 
 lcVertexBuffer lcContext::CreateVertexBuffer(int Size, const void* Data)
@@ -824,7 +983,7 @@ void lcContext::ClearVertexBuffer()
 	}
 	else
 	{
-#ifndef LC_OPENGLES
+#if LC_FIXED_FUNCTION
 		if (mNormalEnabled)
 			glDisableClientState(GL_NORMAL_ARRAY);
 
@@ -931,6 +1090,7 @@ void lcContext::SetVertexFormatPosition(int PositionSize)
 	}
 	else
 	{
+#if LC_FIXED_FUNCTION
 		if (mVertexBufferOffset != mVertexBufferPointer)
 		{
 			glVertexPointer(PositionSize, GL_FLOAT, VertexSize, VertexBufferPointer);
@@ -954,12 +1114,13 @@ void lcContext::SetVertexFormatPosition(int PositionSize)
 			glDisableClientState(GL_COLOR_ARRAY);
 			mColorEnabled = false;
 		}
+#endif
 	}
 }
 
 void lcContext::SetVertexFormatConditional(int BufferOffset)
 {
-	const int VertexSize = 12 * sizeof(float);
+	constexpr int VertexSize = 12 * sizeof(float);
 	const char* VertexBufferPointer = mVertexBufferPointer + BufferOffset;
 
 	if (gSupportsShaderObjects)
@@ -1019,7 +1180,7 @@ void lcContext::SetVertexFormat(int BufferOffset, int PositionSize, int NormalSi
 	}
 	else
 	{
-#ifndef LC_OPENGLES
+#if LC_FIXED_FUNCTION
 		if (mVertexBufferOffset != VertexBufferPointer)
 		{
 			glVertexPointer(PositionSize, GL_FLOAT, VertexSize, VertexBufferPointer);
@@ -1221,7 +1382,7 @@ void lcContext::FlushState()
 	}
 	else
 	{
-#ifndef LC_OPENGLES
+#if LC_FIXED_FUNCTION
 		glColor4fv(mColor);
 
 		if (mWorldMatrixDirty || mViewMatrixDirty)

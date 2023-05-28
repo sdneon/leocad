@@ -77,15 +77,26 @@ public:
 	bool mAutoLoadMostRecent;
 	bool mRestoreTabLayout;
 	lcColorTheme mColorTheme;
+	quint32 mObjectSelectedColor;
+	quint32 mObjectFocusedColor;
+	quint32 mCameraColor;
+	quint32 mLightColor;
+	quint32 mControlPointColor;
+	quint32 mControlPointFocusedColor;
+
 
 	int mPreviewViewSphereEnabled;
 	int mPreviewViewSphereSize;
 	lcViewSphereLocation mPreviewViewSphereLocation;
 	int mDrawPreviewAxis;
 
+	bool mStudCylinderColorEnabled;
 	quint32 mStudCylinderColor;
+	bool mPartEdgeColorEnabled;
 	quint32 mPartEdgeColor;
+	bool mBlackEdgeColorEnabled;
 	quint32 mBlackEdgeColor;
+	bool mDarkEdgeColorEnabled;
 	quint32 mDarkEdgeColor;
 	float mPartEdgeContrast;
 	float mPartColorValueLDIndex;
@@ -94,23 +105,24 @@ public:
 
 struct lcCommandLineOptions
 {
-	bool ParseOK;
-	bool Exit;
-	bool SaveImage;
-	bool SaveWavefront;
-	bool Save3DS;
-	bool SaveCOLLADA;
-	bool SaveHTML;
-	bool SetCameraAngles;
-	bool SetCameraPosition;
-	bool Orthographic;
-	bool SetFoV;
-	bool SetZPlanes;
-	bool SetFadeStepsColor;
-	bool SetHighlightColor;
-	bool FadeSteps;
-	bool ImageHighlight;
-	bool AutomateEdgeColor;
+	bool ParseOK = true;
+	bool Exit = false;
+	bool SaveImage = false;
+	bool SaveWavefront = false;
+	bool Save3DS = false;
+	bool SaveCOLLADA = false;
+	bool SaveCSV = false;
+	bool SaveHTML = false;
+	bool SetCameraAngles = false;
+	bool SetCameraPosition = false;
+	bool Orthographic = false;
+	bool SetFoV = false;
+	bool SetZPlanes = false;
+	bool SetFadeStepsColor = false;
+	bool SetHighlightColor = false;
+	bool FadeSteps = false;
+	bool ImageHighlight = false;
+	bool AutomateEdgeColor = false;
 	int ImageWidth;
 	int ImageHeight;
 	int AASamples;
@@ -126,9 +138,13 @@ struct lcCommandLineOptions
 	float PartColorValueLDIndex;
 	lcVector2 ZPlanes;
 	lcViewpoint Viewpoint;
+	bool StudCylinderColorEnabled;
 	quint32 StudCylinderColor;
+	bool PartEdgeColorEnabled;
 	quint32 PartEdgeColor;
+	bool BlackEdgeColorEnabled;
 	quint32 BlackEdgeColor;
+	bool DarkEdgeColorEnabled;
 	quint32 DarkEdgeColor;
 	quint32 FadeStepsColor;
 	quint32	HighlightColor;
@@ -139,6 +155,7 @@ struct lcCommandLineOptions
 	QString SaveWavefrontName;
 	QString Save3DSName;
 	QString SaveCOLLADAName;
+	QString SaveCSVName;
 	QString SaveHTMLName;
 	QList<QPair<QString, bool>> LibraryPaths;
 	QString StdOut;
@@ -159,6 +176,11 @@ class lcApplication : public QApplication
 public:
 	lcApplication(int& Argc, char** Argv);
 	~lcApplication();
+
+	lcApplication(const lcApplication&) = delete;
+	lcApplication(lcApplication&&) = delete;
+	lcApplication& operator=(const lcApplication&) = delete;
+	lcApplication& operator=(lcApplication&&) = delete;
 
 	void SetProject(Project* Project);
 	static lcCommandLineOptions ParseCommandLineOptions();

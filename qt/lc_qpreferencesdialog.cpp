@@ -2,7 +2,7 @@
 #include "lc_qpreferencesdialog.h"
 #include "ui_lc_qpreferencesdialog.h"
 #include "lc_qutils.h"
-#include "lc_qcategorydialog.h"
+#include "lc_categorydialog.h"
 #include "lc_library.h"
 #include "lc_application.h"
 #include "lc_qutils.h"
@@ -45,6 +45,12 @@ lcQPreferencesDialog::lcQPreferencesDialog(QWidget* Parent, lcPreferencesDialogO
 	connect(ui->ViewSphereColorButton, &QToolButton::clicked, this, &lcQPreferencesDialog::ColorButtonClicked);
 	connect(ui->ViewSphereTextColorButton, &QToolButton::clicked, this, &lcQPreferencesDialog::ColorButtonClicked);
 	connect(ui->ViewSphereHighlightColorButton, &QToolButton::clicked, this, &lcQPreferencesDialog::ColorButtonClicked);
+	connect(ui->ObjectSelectedColorButton, &QToolButton::clicked, this, &lcQPreferencesDialog::ColorButtonClicked);
+	connect(ui->ObjectFocusedColorButton, &QToolButton::clicked, this, &lcQPreferencesDialog::ColorButtonClicked);
+	connect(ui->CameraColorButton, &QToolButton::clicked, this, &lcQPreferencesDialog::ColorButtonClicked);
+	connect(ui->LightColorButton, &QToolButton::clicked, this, &lcQPreferencesDialog::ColorButtonClicked);
+	connect(ui->ControlPointColorButton, &QToolButton::clicked, this, &lcQPreferencesDialog::ColorButtonClicked);
+	connect(ui->ControlPointFocusedColorButton, &QToolButton::clicked, this, &lcQPreferencesDialog::ColorButtonClicked);
 	connect(ui->categoriesTree, SIGNAL(itemSelectionChanged()), this, SLOT(updateParts()));
 	ui->shortcutEdit->installEventFilter(this);
 	connect(ui->commandList, SIGNAL(currentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*)), this, SLOT(commandChanged(QTreeWidgetItem*)));
@@ -210,6 +216,12 @@ lcQPreferencesDialog::lcQPreferencesDialog(QWidget* Parent, lcPreferencesDialogO
 	SetButtonPixmap(mOptions->Preferences.mViewSphereColor, ui->ViewSphereColorButton);
 	SetButtonPixmap(mOptions->Preferences.mViewSphereTextColor, ui->ViewSphereTextColorButton);
 	SetButtonPixmap(mOptions->Preferences.mViewSphereHighlightColor, ui->ViewSphereHighlightColorButton);
+	SetButtonPixmap(mOptions->Preferences.mObjectSelectedColor, ui->ObjectSelectedColorButton);
+	SetButtonPixmap(mOptions->Preferences.mObjectFocusedColor, ui->ObjectFocusedColorButton);
+	SetButtonPixmap(mOptions->Preferences.mCameraColor, ui->CameraColorButton);
+	SetButtonPixmap(mOptions->Preferences.mLightColor, ui->LightColorButton);
+	SetButtonPixmap(mOptions->Preferences.mControlPointColor, ui->ControlPointColorButton);
+	SetButtonPixmap(mOptions->Preferences.mControlPointFocusedColor, ui->ControlPointFocusedColorButton);
 
 	on_studStyleCombo_currentIndexChanged(ui->studStyleCombo->currentIndex());
 	on_antiAliasing_toggled();
@@ -495,6 +507,38 @@ void lcQPreferencesDialog::ColorButtonClicked()
 		Color = &mOptions->Preferences.mViewSphereHighlightColor;
 		Title = tr("Select View Sphere Highlight Color");
 	}
+	else if (Button == ui->ObjectSelectedColorButton)
+	{
+		Color = &mOptions->Preferences.mObjectSelectedColor;
+		Title = tr("Select Object Selected Color");
+	}
+	else if (Button == ui->ObjectFocusedColorButton)
+	{
+		Color = &mOptions->Preferences.mObjectFocusedColor;
+		Title = tr("Select Object Focused Color");
+	}
+	else if (Button == ui->CameraColorButton)
+	{
+		Color = &mOptions->Preferences.mCameraColor;
+		Title = tr("Select Camera Color");
+	}
+	else if (Button == ui->LightColorButton)
+	{
+		Color = &mOptions->Preferences.mLightColor;
+		Title = tr("Select Light Color");
+	}
+	else if (Button == ui->ControlPointColorButton)
+	{
+		Color = &mOptions->Preferences.mControlPointColor;
+		Title = tr("Select Control Point Color");
+		DialogOptions = QColorDialog::ShowAlphaChannel;
+	}
+	else if (Button == ui->ControlPointFocusedColorButton)
+	{
+		Color = &mOptions->Preferences.mControlPointFocusedColor;
+		Title = tr("Select Control Point Focused Color");
+		DialogOptions = QColorDialog::ShowAlphaChannel;
+	}
 	else
 		return;
 
@@ -592,9 +636,13 @@ void lcQPreferencesDialog::AutomateEdgeColor()
 	lcAutomateEdgeColorDialog Dialog(this, sender() == ui->HighContrastButton);
 	if (Dialog.exec() == QDialog::Accepted)
 	{
+		mOptions->Preferences.mStudCylinderColorEnabled = Dialog.mStudCylinderColorEnabled;
 		mOptions->Preferences.mStudCylinderColor = Dialog.mStudCylinderColor;
+		mOptions->Preferences.mPartEdgeColorEnabled = Dialog.mPartEdgeColorEnabled;
 		mOptions->Preferences.mPartEdgeColor = Dialog.mPartEdgeColor;
+		mOptions->Preferences.mBlackEdgeColorEnabled = Dialog.mBlackEdgeColorEnabled;
 		mOptions->Preferences.mBlackEdgeColor = Dialog.mBlackEdgeColor;
+		mOptions->Preferences.mDarkEdgeColorEnabled = Dialog.mDarkEdgeColorEnabled;
 		mOptions->Preferences.mDarkEdgeColor = Dialog.mDarkEdgeColor;
 		mOptions->Preferences.mPartEdgeContrast = Dialog.mPartEdgeContrast;
 		mOptions->Preferences.mPartColorValueLDIndex = Dialog.mPartColorValueLDIndex;
@@ -679,7 +727,7 @@ void lcQPreferencesDialog::on_newCategory_clicked()
 {
 	lcLibraryCategory category;
 
-	lcQCategoryDialog dialog(this, &category);
+	lcCategoryDialog dialog(this, &category);
 	if (dialog.exec() != QDialog::Accepted)
 		return;
 
@@ -704,7 +752,7 @@ void lcQPreferencesDialog::on_editCategory_clicked()
 	if (categoryIndex == -1)
 		return;
 
-	lcQCategoryDialog dialog(this, &mOptions->Categories[categoryIndex]);
+	lcCategoryDialog dialog(this, &mOptions->Categories[categoryIndex]);
 	if (dialog.exec() != QDialog::Accepted)
 		return;
 

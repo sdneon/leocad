@@ -125,7 +125,7 @@ public:
 	lcMeshLoaderSection* AddSection(lcMeshPrimitiveType PrimitiveType, lcMeshLoaderMaterial* Material);
 
 	quint32 AddVertex(const lcVector3& Position, bool Optimize);
-	quint32 AddVertex(const lcVector3& Position, const lcVector3& Normal, bool Optimize);
+	quint32 AddVertex(const lcVector3& Position, const lcVector3& Normal, float NormalWeight, bool Optimize);
 	quint32 AddConditionalVertex(const lcVector3 (&Position)[4]);
 
 	void ProcessLine(int LineType, lcMeshLoaderMaterial* Material, bool WindingCCW, lcVector3 (&Vertices)[4], bool Optimize);
@@ -208,7 +208,7 @@ protected:
 
 	static void UpdateMeshBoundingBox(lcMesh* Mesh);
 	template<typename IndexType>
-	static void UpdateMeshSectionBoundingBox(lcMesh* Mesh, lcMeshSection& Section, lcVector3& SectionMin, lcVector3& SectionMax);
+	static void UpdateMeshSectionBoundingBox(const lcMesh* Mesh, const lcMeshSection& Section, lcVector3& SectionMin, lcVector3& SectionMax);
 };
 
 class lcMeshLoader

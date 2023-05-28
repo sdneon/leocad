@@ -1,6 +1,6 @@
 #include "lc_global.h"
 #include "lc_qpropertiestree.h"
-#include "lc_qcolorpicker.h"
+#include "lc_colorpicker.h"
 #include "lc_application.h"
 #include "lc_model.h"
 #include "lc_mainwindow.h"
@@ -517,9 +517,15 @@ QWidget *lcQPropertiesTree::createEditor(QWidget *parent, QTreeWidgetItem *item)
 			lcPiecesLibrary* Library = lcGetPiecesLibrary();
 			std::vector<PieceInfo*> SortedPieces;
 			SortedPieces.reserve(Library->mPieces.size());
+			const lcModel* ActiveModel = gMainWindow->GetActiveModel();
 
 			for (const auto& PartIt : Library->mPieces)
-				SortedPieces.push_back(PartIt.second);
+			{
+				PieceInfo* Info = PartIt.second;
+
+				if (!Info->IsModel() || !Info->GetModel()->IncludesModel(ActiveModel))
+					SortedPieces.push_back(PartIt.second);
+			}
 
 			auto PieceCompare = [](PieceInfo* Info1, PieceInfo* Info2)
 			{
@@ -784,8 +790,8 @@ void lcQPropertiesTree::slotColorButtonClicked()
 	if (!Button)
 		return;
 
-	lcQColorPickerPopup* Popup = new lcQColorPickerPopup(Button, ColorIndex);
-	connect(Popup, SIGNAL(selected(int)), SLOT(slotSetValue(int)));
+	lcColorPickerPopup* Popup = new lcColorPickerPopup(Button, ColorIndex);
+	connect(Popup, &lcColorPickerPopup::Selected, this, &lcQPropertiesTree::slotSetValue);
 	Popup->setMinimumSize(qMax(300, width()), qMax(200, static_cast<int>(width() * 2 / 3)));
 
 #if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))

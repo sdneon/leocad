@@ -233,7 +233,10 @@ public slots:
 protected slots:
 	void DockLocationChanged(Qt::DockWidgetArea Area);
 	void FilterChanged(const QString& Text);
+	void FilterCategoriesChanged(const QString& Text);
 	void FilterTriggered();
+	void FilterCaseTriggered();
+	void FilterCategoriesTriggered();
 	void CategoryChanged(QTreeWidgetItem* Current, QTreeWidgetItem* Previous);
 	void PartChanged(const QModelIndex& Current, const QModelIndex& Previous);
 	void OptionsMenuAboutToShow();
@@ -247,6 +250,9 @@ protected:
 	bool event(QEvent* Event) override;
 
 	QTreeWidget* mCategoriesWidget;
+	QLineEdit* mFilterCategoriesWidget;
+	QAction* mFilterCategoriesAction;
+	QAction* mFilterCaseAction;
 	QLineEdit* mFilterWidget;
 	QAction* mFilterAction;
 	lcPartSelectionListView* mPartsWidget;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "lc_context.h"
-#include "lc_mesh.h"
 #include "lc_math.h"
 #include "lc_array.h"
 #include "lc_meshloader.h"
@@ -23,7 +22,7 @@ enum class lcStudStyle
 	Count
 };
 
-inline bool lcIsHighContrast(lcStudStyle StudStyle)
+constexpr bool lcIsHighContrast(lcStudStyle StudStyle)
 {
 	return StudStyle == lcStudStyle::HighContrast || StudStyle == lcStudStyle::HighContrastLogo;
 }
@@ -98,11 +97,18 @@ enum class lcLibrarySourceType
 
 struct lcLibrarySource
 {
+	lcLibrarySource() = default;
+
 	~lcLibrarySource()
 	{
 		for (const auto& PrimitiveIt : Primitives)
 			delete PrimitiveIt.second;
 	}
+
+	lcLibrarySource(const lcLibrarySource&) = delete;
+	lcLibrarySource(lcLibrarySource&&) = delete;
+	lcLibrarySource& operator=(const lcLibrarySource&) = delete;
+	lcLibrarySource& operator=(lcLibrarySource&&) = delete;
 
 	lcLibrarySourceType Type;
 	std::map<std::string, lcLibraryPrimitive*> Primitives;
@@ -117,7 +123,9 @@ public:
 	~lcPiecesLibrary();
 
 	lcPiecesLibrary(const lcPiecesLibrary&) = delete;
+	lcPiecesLibrary(lcPiecesLibrary&&) = delete;
 	lcPiecesLibrary& operator=(const lcPiecesLibrary&) = delete;
+	lcPiecesLibrary& operator=(lcPiecesLibrary&&) = delete;
 
 	bool Load(const QString& LibraryPath, bool ShowProgress);
 	void LoadColors();
@@ -155,7 +163,7 @@ public:
 	bool LoadPrimitive(lcLibraryPrimitive* Primitive);
 
 	bool SupportsStudStyle() const;
-	void SetStudStyle(lcStudStyle StudStyle, bool Reload);
+	void SetStudStyle(lcStudStyle StudStyle, bool Reload, bool StudCylinderColorEnabled);
 
 	lcStudStyle GetStudStyle() const
 	{
@@ -226,6 +234,7 @@ protected:
 	QMutex mTextureMutex;
 
 	lcStudStyle mStudStyle;
+	bool mStudCylinderColorEnabled;
 
 	QString mCachePath;
 	qint64 mArchiveCheckSum[4];

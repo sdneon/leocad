@@ -21,7 +21,7 @@
 #if MAX_MEM_LEVEL >= 8
 #  define DEF_MEM_LEVEL 8
 #else
-#  define DEF_MEM_LEVEL  MAX_MEM_LEVEL
+#  define DEF_MEM_LEVEL	 MAX_MEM_LEVEL
 #endif
 
 #define LC_LIBRARY_CACHE_VERSION   0x0109
@@ -44,6 +44,7 @@ lcPiecesLibrary::lcPiecesLibrary()
 	mHasUnofficial = false;
 	mCancelLoading = false;
 	mStudStyle = static_cast<lcStudStyle>(lcGetProfileInt(LC_PROFILE_STUD_STYLE));
+	mStudCylinderColorEnabled = lcGetProfileInt(LC_PROFILE_STUD_CYLINDER_COLOR_ENABLED);
 }
 
 lcPiecesLibrary::~lcPiecesLibrary()
@@ -164,7 +165,7 @@ PieceInfo* lcPiecesLibrary::FindPiece(const char* PieceName, Project* CurrentPro
 	{
 		PieceInfo* Info = PieceIt->second;
 
-		if ((!CurrentProject || !Info->IsModel() || CurrentProject->GetModels().FindIndex(Info->GetModel()) != -1) && (!ProjectPath.isEmpty() || !Info->IsProject()))
+		if ((!CurrentProject || !Info->IsModel() || CurrentProject->GetModels().FindIndex(Info->GetModel()) != -1) && (!ProjectPath.isEmpty() || !Info->IsProject() || Info->IsProjectPiece()))
 			return Info;
 	}
 
@@ -335,17 +336,17 @@ void lcPiecesLibrary::UpdateStudStyleSource()
 
 	mZipFiles[static_cast<int>(lcZipFileType::StudStyle)].reset();
 
-	if (mStudStyle == lcStudStyle::Plain)
+	if (mStudStyle == lcStudStyle::Plain || (mStudStyle >= lcStudStyle::HighContrast && !mStudCylinderColorEnabled))
 		return;
 
 	const QLatin1String FileNames[] =
 	{
-		QLatin1String(""),                                // Plain
-		QLatin1String(":/resources/studlogo1.zip"),       // ThinLinesLogo
-		QLatin1String(":/resources/studlogo2.zip"),       // OutlineLogo
-		QLatin1String(":/resources/studlogo3.zip"),       // SharpTopLogo
-		QLatin1String(":/resources/studlogo4.zip"),       // RoundedTopLogo
-		QLatin1String(":/resources/studlogo5.zip"),       // FlattenedLogo
+		QLatin1String(""),								  // Plain
+		QLatin1String(":/resources/studlogo1.zip"),		  // ThinLinesLogo
+		QLatin1String(":/resources/studlogo2.zip"),		  // OutlineLogo
+		QLatin1String(":/resources/studlogo3.zip"),		  // SharpTopLogo
+		QLatin1String(":/resources/studlogo4.zip"),		  // RoundedTopLogo
+		QLatin1String(":/resources/studlogo5.zip"),		  // FlattenedLogo
 		QLatin1String(":/resources/studslegostyle1.zip"), // HighContrast
 		QLatin1String(":/resources/studslegostyle2.zip")  // HighContrastLogo
 	};
@@ -599,7 +600,7 @@ bool lcPiecesLibrary::OpenDirectory(const QDir& LibraryDir, bool ShowProgress)
 				Source->Primitives[Name] = new lcLibraryPrimitive(std::move(FileName), strchr(FileString, '/') + 1, lcZipFileType::Count, 0, !SubFile && IsStudPrimitive(Name), IsStudStylePrimitive(Name), SubFile);
 			}
 		}
-		
+
 		mSources.emplace_back(std::move(Source));
 	}
 
@@ -1121,7 +1122,7 @@ bool lcPiecesLibrary::LoadCachePiece(PieceInfo* Info)
 	if (MeshData.ReadBuffer((char*)&Flags, sizeof(Flags)) == 0)
 		return false;
 
-	if (Flags != static_cast<qint32>(mStudStyle))
+	if (Flags != static_cast<qint32>(mStudStyle) + static_cast<qint32>(mStudCylinderColorEnabled))
 		return false;
 
 	lcMesh* Mesh = new lcMesh;
@@ -1141,7 +1142,7 @@ bool lcPiecesLibrary::SaveCachePiece(PieceInfo* Info)
 {
 	lcMemFile MeshData;
 
-	const qint32 Flags = static_cast<qint32>(mStudStyle);
+	const qint32 Flags = static_cast<qint32>(mStudStyle) + static_cast<qint32>(mStudCylinderColorEnabled);
 	if (MeshData.WriteBuffer((char*)&Flags, sizeof(Flags)) == 0)
 		return false;
 
@@ -1172,7 +1173,7 @@ void lcPiecesLibrary::LoadPieceInfo(PieceInfo* Info, bool Wait, bool Priority)
 			Info->Load();
 		else
 		{
-			if (Info->mState == LC_PIECEINFO_UNLOADED)
+			if (Info->mState == lcPieceInfoState::Unloaded)
 			{
 				Info->Load();
 				emit PartLoaded(Info);
@@ -1181,7 +1182,7 @@ void lcPiecesLibrary::LoadPieceInfo(PieceInfo* Info, bool Wait, bool Priority)
 			{
 				LoadLock.unlock();
 
-				while (Info->mState != LC_PIECEINFO_LOADED)
+				while (Info->mState != lcPieceInfoState::Loaded)
 					lcSleeper::msleep(10);
 			}
 		}
@@ -1218,9 +1219,9 @@ void lcPiecesLibrary::LoadQueuedPiece()
 	{
 		Info = mLoadQueue.takeFirst();
 
-		if (Info->mState == LC_PIECEINFO_UNLOADED && Info->GetRefCount() > 0)
+		if (Info->mState == lcPieceInfoState::Unloaded && Info->GetRefCount() > 0)
 		{
-			Info->mState = LC_PIECEINFO_LOADING;
+			Info->mState = lcPieceInfoState::Loading;
 			break;
 		}
 
@@ -1502,7 +1503,7 @@ void lcPiecesLibrary::UnloadUnusedParts()
 	for (const auto& PieceIt : mPieces)
 	{
 		PieceInfo* Info = PieceIt.second;
-		if (Info->GetRefCount() == 0 && Info->mState != LC_PIECEINFO_UNLOADED)
+		if (Info->GetRefCount() == 0 && Info->mState != lcPieceInfoState::Unloaded)
 			ReleasePieceInfo(Info);
 	}
 }
@@ -1550,12 +1551,14 @@ bool lcPiecesLibrary::SupportsStudStyle() const
 	return true;
 }
 
-void lcPiecesLibrary::SetStudStyle(lcStudStyle StudStyle, bool Reload)
+void lcPiecesLibrary::SetStudStyle(lcStudStyle StudStyle, bool Reload, bool StudCylinderColorEnabled)
 {
-	if (mStudStyle == StudStyle)
+	if (mStudStyle == StudStyle && mStudCylinderColorEnabled == StudCylinderColorEnabled)
 		return;
 
 	mStudStyle = StudStyle;
+
+	mStudCylinderColorEnabled = StudCylinderColorEnabled;
 
 	LoadColors();
 	UpdateStudStyleSource();
@@ -1583,7 +1586,7 @@ void lcPiecesLibrary::SetStudStyle(lcStudStyle StudStyle, bool Reload)
 		{
 			PieceInfo* Info = PieceIt.second;
 
-			if (Info->mState == LC_PIECEINFO_LOADED && Info->GetMesh() && Info->GetMesh()->mFlags & lcMeshFlag::HasStyleStud)
+			if (Info->mState == lcPieceInfoState::Loaded && Info->GetMesh() && Info->GetMesh()->mFlags & lcMeshFlag::HasStyleStud)
 			{
 				Info->Unload();
 				mLoadQueue.append(Info);
@@ -1616,7 +1619,7 @@ lcLibraryPrimitive* lcPiecesLibrary::FindPrimitive(const char* Name) const
 			return PrimitiveIt->second;
 	}
 
-	return  nullptr;
+	return	nullptr;
 }
 
 bool lcPiecesLibrary::LoadPrimitive(lcLibraryPrimitive* Primitive)
