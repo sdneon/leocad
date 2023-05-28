@@ -13,6 +13,7 @@
 #include "lc_view.h"
 #include "lc_glextensions.h"
 #include "lc_category.h"
+#include <QRegularExpression>
 
 Q_DECLARE_METATYPE(QList<int>)
 
@@ -39,7 +40,9 @@ QSize lcPartSelectionItemDelegate::sizeHint(const QStyleOptionViewItem& Option, 
 }
 
 lcPartSelectionListModel::lcPartSelectionListModel(QObject* Parent)
-	: QAbstractListModel(Parent)
+    : QAbstractListModel(Parent),
+      //(size1)x(size2)x(size3) (rest) ->       v-1: size1                 v-2: size2                    v-3: size3          v-4: rest
+      mpRegexBrickSize(new QRegularExpression("^(\\d+(?:\\.\\d+)?)\\s*x\\s*(\\d+(?:\\.\\d+)?)(?:\\s*x\\s*(\\d+(?:\\.\\d+)?))?(\\s+(.*))?"))
 {
 	mListView = (lcPartSelectionListView*)Parent;
 	mIconSize = 0;
@@ -69,6 +72,7 @@ lcPartSelectionListModel::~lcPartSelectionListModel()
 
 	mView.reset();
 	mModel.reset();
+    delete mpRegexBrickSize;
 }
 
 void lcPartSelectionListModel::ClearRequests()
@@ -257,16 +261,52 @@ void lcPartSelectionListModel::SetCurrentModelCategory()
 	SetFilter(mFilter);
 }
 
+boolean MatchAllWords(const char *Description, const QString& Phrase)
+{
+    QStringList words = Phrase.split(QRegExp("\\s+"));
+    for (const auto& w : words)
+    {
+        if (!strcasestr(Description, w.toLocal8Bit()))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 void lcPartSelectionListModel::SetFilter(const QString& Filter)
 {
 	mFilter = Filter.toLatin1();
 
-	for (size_t PartIdx = 0; PartIdx < mParts.size(); PartIdx++)
+    //Support matching brick size specified as #x##x### (i.e. no spaces in between), to match # x ## x ###
+    QRegularExpressionMatch match = mpRegexBrickSize->match(mFilter);
+    QString size, rest;
+    if (match.hasMatch())
+    {
+        QString size1 = match.captured(1),
+                size2 = match.captured(2),
+                size3 = match.captured(3);
+        rest = match.captured(4).trimmed();
+        size = size1 + " x " + size2;
+        if (!size3.isEmpty())
+        {
+            size += " x " + size3;
+        }
+        if (!rest.isEmpty())
+        {
+            mFilter = (size + " " + rest).toLatin1();
+        }
+        else
+        {
+            mFilter = size.toLatin1();
+        }
+    }
+    for (size_t PartIdx = 0; PartIdx < mParts.size(); PartIdx++)
 	{
 		PieceInfo* Info = mParts[PartIdx].first;
 		bool Visible;
 
-		if (!mShowDecoratedParts && Info->IsPatterned())
+		if (!mShowDecoratedParts && Info->IsPatterned() && !Info->IsProjectPiece())
 			Visible = false;
 		else if (!mShowPartAliases && Info->m_strDescription[0] == '=')
 			Visible = false;
@@ -292,6 +332,34 @@ void lcPartSelectionListModel::SetFilter(const QString& Filter)
 			}
 
 			Visible = strcasestr(Description, mFilter) || strcasestr(Info->mFileName, mFilter);
+
+            if (!Visible)
+            {
+                //Alternate lax searches:
+                //1. if no size, match every keyword from Filter
+                if (size.isEmpty())
+                {
+                    Visible = MatchAllWords(Description, Filter);
+                }
+                else if (!rest.isEmpty())
+                {
+                    //2. has size, so match size 1st, then the rest
+                    if (strcasestr(Description, size.toLatin1()))
+                    {
+                        //2a. match the rest (as a phrase)
+                        if (strcasestr(Description, rest.toLatin1()))
+                        {
+                            Visible = true;
+                        }
+                        else
+                        {
+                            //2b. match every keyword from rest
+                            Visible = MatchAllWords(Description, rest);
+                        }
+                    }
+                    //else size doesn't match
+                }
+            }
 		}
 
 		mListView->setRowHidden((int)PartIdx, !Visible);
@@ -366,7 +434,7 @@ void lcPartSelectionListModel::RequestPreview(int InfoIndex)
 	PieceInfo* Info = mParts[InfoIndex].first;
 	lcGetPiecesLibrary()->LoadPieceInfo(Info, false, false);
 
-	if (Info->mState == LC_PIECEINFO_LOADED)
+	if (Info->mState == lcPieceInfoState::Loaded)
 		DrawPreview(InfoIndex);
 	else
 		mRequestedPreviews.push_back(InfoIndex);
@@ -727,10 +795,39 @@ lcPartSelectionWidget::lcPartSelectionWidget(QWidget* Parent)
 	mSplitter->setOrientation(Qt::Vertical);
 	mSplitter->setChildrenCollapsible(false);
 
+	QWidget* CategoriesGroupWidget = new QWidget(mSplitter);
+
+	QVBoxLayout* CategoriesLayout = new QVBoxLayout();
+	CategoriesLayout->setContentsMargins(0, 0, 0, 0);
+	CategoriesGroupWidget->setLayout(CategoriesLayout);
+
+	QHBoxLayout* FilterCategoriesLayout = new QHBoxLayout();
+	FilterCategoriesLayout->setContentsMargins(0, 0, 0, 0);
+	CategoriesLayout->addLayout(FilterCategoriesLayout);
+
+	mFilterCategoriesWidget = new QLineEdit(CategoriesGroupWidget);
+	mFilterCategoriesWidget->setPlaceholderText(tr("Filter Categories"));
+	mFilterCategoriesAction = mFilterCategoriesWidget->addAction(QIcon(":/resources/filter.png"), QLineEdit::TrailingPosition);
+	connect(mFilterCategoriesAction, SIGNAL(triggered()), this, SLOT(FilterCategoriesTriggered()));
+	FilterCategoriesLayout->addWidget(mFilterCategoriesWidget);
+
+	mFilterCaseAction = new QAction();
+	mFilterCaseAction->setIcon(QIcon(":/resources/case.png"));
+	mFilterCaseAction->setToolTip(tr("Match Case"));
+	mFilterCaseAction->setCheckable(true);
+	mFilterCaseAction->setChecked(false);
+	connect(mFilterCaseAction, SIGNAL(triggered()), this, SLOT(FilterCaseTriggered()));
+
+	QToolButton* FilterCaseButton = new QToolButton();
+	FilterCaseButton->setDefaultAction(mFilterCaseAction);
+	FilterCategoriesLayout->addWidget(FilterCaseButton);
+
 	mCategoriesWidget = new QTreeWidget(mSplitter);
 	mCategoriesWidget->setHeaderHidden(true);
 	mCategoriesWidget->setUniformRowHeights(true);
 	mCategoriesWidget->setRootIsDecorated(false);
+
+	CategoriesLayout->addWidget(mCategoriesWidget);
 
 	QWidget* PartsGroupWidget = new QWidget(mSplitter);
 
@@ -769,6 +866,7 @@ lcPartSelectionWidget::lcPartSelectionWidget(QWidget* Parent)
 	connect(mPartsWidget->selectionModel(), SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)), this, SLOT(PartChanged(const QModelIndex&, const QModelIndex&)));
 	connect(mFilterWidget, SIGNAL(textChanged(const QString&)), this, SLOT(FilterChanged(const QString&)));
 	connect(mCategoriesWidget, SIGNAL(currentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*)), this, SLOT(CategoryChanged(QTreeWidgetItem*, QTreeWidgetItem*)));
+	connect(mFilterCategoriesWidget, SIGNAL(textChanged(const QString&)), this, SLOT(FilterCategoriesChanged(const QString&)));
 
 	LoadPartPalettes();
 	UpdateCategories();
@@ -855,6 +953,31 @@ void lcPartSelectionWidget::resizeEvent(QResizeEvent* Event)
 	QWidget::resizeEvent(Event);
 }
 
+void lcPartSelectionWidget::FilterCategoriesChanged(const QString& Text)
+{
+	if (mFilterCategoriesAction)
+	{
+		if (Text.isEmpty())
+			mFilterCategoriesAction->setIcon(QIcon(":/resources/filter.png"));
+		else
+			mFilterCategoriesAction->setIcon(QIcon(":/resources/parts_cancel.png"));
+	}
+
+	bool Hide = true;
+	Qt::CaseSensitivity MatchCase = mFilterCaseAction->isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive;
+	mCategoriesWidget->setUpdatesEnabled(false);
+	for (int CategoryIdx = 0; CategoryIdx < mCategoriesWidget->topLevelItemCount(); CategoryIdx++)
+	{
+		QTreeWidgetItem* CategoryItem = mCategoriesWidget->topLevelItem(CategoryIdx);
+		Hide = false;
+		if (!CategoryItem->text(0).contains(Text, MatchCase))
+			Hide = true;
+		CategoryItem->setHidden(Hide);
+	}
+	mCategoriesWidget->setUpdatesEnabled(true);
+	mCategoriesWidget->update();
+}
+
 void lcPartSelectionWidget::FilterChanged(const QString& Text)
 {
 	if (mFilterAction)
@@ -866,6 +989,17 @@ void lcPartSelectionWidget::FilterChanged(const QString& Text)
 	}
 
 	mPartsWidget->GetListModel()->SetFilter(Text);
+}
+
+void lcPartSelectionWidget::FilterCategoriesTriggered()
+{
+	mFilterCategoriesWidget->clear();
+}
+
+void lcPartSelectionWidget::FilterCaseTriggered()
+{
+	if (!mFilterCategoriesWidget->text().isEmpty())
+		FilterCategoriesChanged(mFilterCategoriesWidget->text());
 }
 
 void lcPartSelectionWidget::FilterTriggered()
@@ -899,7 +1033,7 @@ void lcPartSelectionWidget::OptionsMenuAboutToShow()
 	QMenu* Menu = (QMenu*)sender();
 	Menu->clear();
 
-	Menu->addAction("Edit Palettes...", this, SLOT(EditPartPalettes()));
+	Menu->addAction(tr("Edit Palettes..."), this, SLOT(EditPartPalettes()));
 	Menu->addSeparator();
 
 	lcPartSelectionListModel* ListModel = mPartsWidget->GetListModel();

@@ -179,7 +179,7 @@ void lcViewManipulator::DrawSelectMove(lcTrackButton TrackButton, lcTrackTool Tr
 	Context->SetViewMatrix(Camera->mWorldView);
 	Context->SetProjectionMatrix(mView->GetProjectionMatrix());
 
-	glDisable(GL_DEPTH_TEST);
+	Context->EnableDepthTest(false);
 
 	lcVector3 OverlayCenter;
 	lcMatrix33 RelativeRotation;
@@ -285,7 +285,7 @@ void lcViewManipulator::DrawSelectMove(lcTrackButton TrackButton, lcTrackTool Tr
 
 	if ((TrackTool == lcTrackTool::MoveXY) || (TrackTool == lcTrackTool::MoveXZ) || (TrackTool == lcTrackTool::MoveYZ))
 	{
-		glEnable(GL_BLEND);
+		Context->EnableColorBlend(true);
 
 		Context->SetColor(0.8f, 0.8f, 0.0f, 0.3f);
 
@@ -296,7 +296,7 @@ void lcViewManipulator::DrawSelectMove(lcTrackButton TrackButton, lcTrackTool Tr
 		else if (TrackTool == lcTrackTool::MoveYZ)
 			Context->DrawIndexedPrimitives(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_SHORT, (108 + 360) * 2);
 
-		glDisable(GL_BLEND);
+		Context->EnableColorBlend(false);
 	}
 
 	if (Focus && Focus->IsPiece())
@@ -360,7 +360,7 @@ void lcViewManipulator::DrawSelectMove(lcTrackButton TrackButton, lcTrackTool Tr
 		}
 	}
 
-	glEnable(GL_DEPTH_TEST);
+	Context->EnableDepthTest(true);
 }
 
 void lcViewManipulator::DrawRotate(lcTrackButton TrackButton, lcTrackTool TrackTool)
@@ -376,7 +376,7 @@ void lcViewManipulator::DrawRotate(lcTrackButton TrackButton, lcTrackTool TrackT
 	Context->SetProjectionMatrix(mView->GetProjectionMatrix());
 	Context->SetLineWidth(1.0f);
 
-	glDisable(GL_DEPTH_TEST);
+	Context->EnableDepthTest(false);
 
 	int j;
 
@@ -439,7 +439,7 @@ void lcViewManipulator::DrawRotate(lcTrackButton TrackButton, lcTrackTool TrackT
 
 			Context->SetWorldMatrix(RotatedWorldMatrix);
 
-			glEnable(GL_BLEND);
+			Context->EnableColorBlend(true);
 
 			lcVector3 Verts[33];
 			Verts[0] = lcVector3(0.0f, 0.0f, 0.0f);
@@ -481,7 +481,7 @@ void lcViewManipulator::DrawRotate(lcTrackButton TrackButton, lcTrackTool TrackT
 			if (NumVerts > 2)
 				Context->DrawPrimitives(GL_TRIANGLE_FAN, 0, NumVerts);
 
-			glDisable(GL_BLEND);
+			Context->EnableColorBlend(false);
 		}
 	}
 
@@ -650,7 +650,7 @@ void lcViewManipulator::DrawRotate(lcTrackButton TrackButton, lcTrackTool TrackT
 		Context->SetViewMatrix(lcMatrix44Translation(lcVector3(0.375, 0.375, 0.0)));
 		Context->SetProjectionMatrix(lcMatrix44Ortho(0.0f, mView->GetWidth(), 0.0f, mView->GetHeight(), -1.0f, 1.0f));
 		Context->BindTexture2D(gTexFont.GetTexture());
-		glEnable(GL_BLEND);
+		Context->EnableColorBlend(true);
 
 		char buf[32];
 		sprintf(buf, "[%.2f]", fabsf(Angle));
@@ -661,10 +661,10 @@ void lcViewManipulator::DrawRotate(lcTrackButton TrackButton, lcTrackTool TrackT
 		Context->SetColor(0.8f, 0.8f, 0.0f, 1.0f);
 		gTexFont.PrintText(Context, ScreenPos[0] - (cx / 2), ScreenPos[1] + (cy / 2), 0.0f, buf);
 
-		glDisable(GL_BLEND);
+		Context->EnableColorBlend(false);
 	}
 
-	glEnable(GL_DEPTH_TEST);
+	Context->EnableDepthTest(true);
 }
 
 bool lcViewManipulator::IsTrackToolAllowed(lcTrackTool TrackTool, quint32 AllowedTransforms)
@@ -790,7 +790,7 @@ lcTrackTool lcViewManipulator::UpdateSelectMove()
 		quint32 Section = Piece->GetFocusSection();
 
 		if (Section >= LC_PIECE_SECTION_CONTROL_POINT_FIRST && Section <= LC_PIECE_SECTION_CONTROL_POINT_LAST)
-			ControlPointIndex = Section - LC_PIECE_SECTION_CONTROL_POINT_1;
+			ControlPointIndex = Section - LC_PIECE_SECTION_CONTROL_POINT_FIRST;
 	}
 
 	quint32 AllowedTransforms = Focus ? Focus->GetAllowedTransforms() : LC_OBJECT_TRANSFORM_MOVE_X | LC_OBJECT_TRANSFORM_MOVE_Y | LC_OBJECT_TRANSFORM_MOVE_Z | LC_OBJECT_TRANSFORM_ROTATE_X | LC_OBJECT_TRANSFORM_ROTATE_Y | LC_OBJECT_TRANSFORM_ROTATE_Z;
@@ -911,17 +911,15 @@ lcTrackTool lcViewManipulator::UpdateSelectMove()
 
 lcTrackTool lcViewManipulator::UpdateRotate()
 {
-	lcModel* ActiveModel = mView->GetActiveModel();
+	const lcModel* ActiveModel = mView->GetActiveModel();
 	const float OverlayScale = mView->GetOverlayScale();
 	const float OverlayRotateRadius = 2.0f;
-
-	lcTrackTool NewTrackTool = lcTrackTool::RotateXYZ;
 
 	lcVector3 OverlayCenter;
 	lcMatrix33 RelativeRotation;
 
 	if (!ActiveModel->GetMoveRotateTransform(OverlayCenter, RelativeRotation))
-		return NewTrackTool;
+		return lcTrackTool::RotateXYZ;
 
 	lcMatrix44 WorldMatrix = lcMatrix44(RelativeRotation, OverlayCenter);
 
@@ -929,137 +927,48 @@ lcTrackTool lcViewManipulator::UpdateRotate()
 		WorldMatrix = lcMul(WorldMatrix, mView->GetActiveSubmodelTransform());
 	OverlayCenter = WorldMatrix.GetTranslation();
 
-	// Calculate the distance from the mouse pointer to the center of the sphere.
 	const int x = mView->GetMouseX();
 	const int y = mView->GetMouseY();
 	lcVector3 StartEnd[2] = { lcVector3((float)x, (float)y, 0.0f), lcVector3((float)x, (float)y, 1.0f) };
 	mView->UnprojectPoints(StartEnd, 2);
-	const lcVector3& SegStart = StartEnd[0];
-	const lcVector3& SegEnd = StartEnd[1];
 
-	lcVector3 Line = SegEnd - SegStart;
-	lcVector3 Vec = OverlayCenter - SegStart;
+	lcVector3 Intersection;
 
-	float u = lcDot(Vec, Line) / Line.LengthSquared();
-
-	// Closest point in the line to the mouse.
-	lcVector3 Closest = SegStart + Line * u;
-
-	float Distance = (Closest - OverlayCenter).Length();
-	const float Epsilon = 0.25f * OverlayScale;
-
-	if (Distance > (OverlayRotateRadius * OverlayScale + Epsilon))
+	if (lcSphereRayIntersection(OverlayCenter, OverlayRotateRadius * OverlayScale, StartEnd[0], StartEnd[1], Intersection))
 	{
-		NewTrackTool = lcTrackTool::RotateXYZ;
-	}
-	else if (Distance < (OverlayRotateRadius * OverlayScale + Epsilon))
-	{
-		// 3D rotation unless we're over one of the axis circles.
-		NewTrackTool = lcTrackTool::RotateXYZ;
+		const lcVector3 LocalIntersection = lcMul(Intersection - OverlayCenter, lcMatrix33AffineInverse(RelativeRotation));
+		const float Epsilon = 0.25f * OverlayScale;
+		const float dx = fabsf(LocalIntersection[0]);
+		const float dy = fabsf(LocalIntersection[1]);
+		const float dz = fabsf(LocalIntersection[2]);
 
-		// Point P on a line defined by two points P1 and P2 is described by P = P1 + u (P2 - P1)
-		// A sphere centered at P3 with radius r is described by (x - x3)^2 + (y - y3)^2 + (z - z3)^2 = r^2
-		// Substituting the equation of the line into the sphere gives a quadratic equation where:
-		// a = (x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2
-		// b = 2[ (x2 - x1) (x1 - x3) + (y2 - y1) (y1 - y3) + (z2 - z1) (z1 - z3) ]
-		// c = x32 + y32 + z32 + x12 + y12 + z12 - 2[x3 x1 + y3 y1 + z3 z1] - r2
-		// The solutions to this quadratic are described by: (-b +- sqrt(b^2 - 4 a c) / 2 a
-		// The exact behavior is determined by b^2 - 4 a c:
-		// If this is less than 0 then the line does not intersect the sphere.
-		// If it equals 0 then the line is a tangent to the sphere intersecting it at one point
-		// If it is greater then 0 the line intersects the sphere at two points.
-
-		float x1 = SegStart[0], y1 = SegStart[1], z1 = SegStart[2];
-		float x2 = SegEnd[0], y2 = SegEnd[1], z2 = SegEnd[2];
-		float x3 = OverlayCenter[0], y3 = OverlayCenter[1], z3 = OverlayCenter[2];
-		float r = OverlayRotateRadius * OverlayScale;
-
-		// TODO: rewrite using vectors.
-		float a = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1);
-		float b = 2 * ((x2 - x1) * (x1 - x3) + (y2 - y1) * (y1 - y3) + (z2 - z1) * (z1 - z3));
-		float c = x3 * x3 + y3 * y3 + z3 * z3 + x1 * x1 + y1 * y1 + z1 * z1 - 2 * (x3 * x1 + y3 * y1 + z3 * z1) - r * r;
-		float f = b * b - 4 * a * c;
-
-		if (f >= 0.0f)
+		if (dx < dy)
 		{
-			const lcCamera* Camera = mView->GetCamera();
-			const lcVector3 ViewDir(Camera->mTargetPosition - Camera->mPosition);
-
-			float u1 = (-b + sqrtf(f)) / (2 * a);
-			float u2 = (-b - sqrtf(f)) / (2 * a);
-
-			lcVector3 Intersections[2] =
+			if (dx < dz)
 			{
-				lcVector3(x1 + u1 * (x2 - x1), y1 + u1 * (y2 - y1), z1 + u1 * (z2 - z1)),
-				lcVector3(x1 + u2 * (x2 - x1), y1 + u2 * (y2 - y1), z1 + u2 * (z2 - z1))
-			};
-
-			for (int i = 0; i < 2; i++)
+				if (dx < Epsilon)
+					return lcTrackTool::RotateX;
+			}
+			else
 			{
-				lcVector3 Dist = Intersections[i] - OverlayCenter;
-
-				if (lcDot(ViewDir, Dist) > 0.0f)
-					continue;
-
-				Dist = lcMul(Dist, RelativeRotation);
-
-				// Check if we're close enough to one of the axis.
-				Dist.Normalize();
-
-				float dx = fabsf(Dist[0]);
-				float dy = fabsf(Dist[1]);
-				float dz = fabsf(Dist[2]);
-
-				if (dx < dy)
-				{
-					if (dx < dz)
-					{
-						if (dx < Epsilon)
-							NewTrackTool = lcTrackTool::RotateX;
-					}
-					else
-					{
-						if (dz < Epsilon)
-							NewTrackTool = lcTrackTool::RotateZ;
-					}
-				}
-				else
-				{
-					if (dy < dz)
-					{
-						if (dy < Epsilon)
-							NewTrackTool = lcTrackTool::RotateY;
-					}
-					else
-					{
-						if (dz < Epsilon)
-							NewTrackTool = lcTrackTool::RotateZ;
-					}
-				}
-
-				if (NewTrackTool != lcTrackTool::RotateXYZ)
-				{
-					switch (NewTrackTool)
-					{
-						case lcTrackTool::RotateX:
-							Dist[0] = 0.0f;
-							break;
-						case lcTrackTool::RotateY:
-							Dist[1] = 0.0f;
-							break;
-						case lcTrackTool::RotateZ:
-							Dist[2] = 0.0f;
-							break;
-						default:
-							break;
-					}
-
-					Dist *= r;
-					break;
-				}
+				if (dz < Epsilon)
+					return lcTrackTool::RotateZ;
+			}
+		}
+		else
+		{
+			if (dy < dz)
+			{
+				if (dy < Epsilon)
+					return lcTrackTool::RotateY;
+			}
+			else
+			{
+				if (dz < Epsilon)
+					return lcTrackTool::RotateZ;
 			}
 		}
 	}
 
-	return NewTrackTool;
+	return lcTrackTool::RotateXYZ;
 }

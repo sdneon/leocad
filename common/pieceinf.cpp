@@ -18,20 +18,24 @@ PieceInfo::PieceInfo()
 {
 	mZipFileType = lcZipFileType::Count;
 	mZipFileIndex = -1;
-	mState = LC_PIECEINFO_UNLOADED;
+	mFolderType = -1;
+	mFolderIndex = -1;
+	mState = lcPieceInfoState::Unloaded;
 	mRefCount = 0;
 	mType = lcPieceInfoType::Part;
 	mMesh = nullptr;
 	mModel = nullptr;
 	mProject = nullptr;
 	mSynthInfo = nullptr;
+	mFileName[0] = 0;
+	m_strDescription[0] = 0;
 }
 
 PieceInfo::~PieceInfo()
 {
 	delete mSynthInfo;
 
-	if (mState == LC_PIECEINFO_LOADED)
+	if (mState == lcPieceInfoState::Loaded)
 		Unload();
 }
 
@@ -99,13 +103,20 @@ void PieceInfo::CreateProject(Project* Project, const char* PieceName)
 	{
 		mType = lcPieceInfoType::Project;
 		mProject = Project;
-		mState = LC_PIECEINFO_LOADED;
+		mState = lcPieceInfoState::Loaded;
 	}
 
 	strncpy(mFileName, PieceName, sizeof(mFileName) - 1);
 	mFileName[sizeof(mFileName) - 1] = 0;
 	strncpy(m_strDescription, Project->GetFileName().toLatin1().data(), sizeof(m_strDescription) - 1);
 	m_strDescription[sizeof(m_strDescription) - 1] = 0;
+}
+
+bool PieceInfo::IsProjectPiece() const
+{
+	if (mProject)
+		return !strcmp(m_strDescription, mProject->GetFileName().toLatin1().data());
+	return false;
 }
 
 bool PieceInfo::GetPieceWorldMatrix(lcPiece* Piece, lcMatrix44& WorldMatrix) const
@@ -143,7 +154,7 @@ void PieceInfo::Load()
 {
 	if (!IsModel() && !IsProject())
 	{
-		mState = LC_PIECEINFO_LOADING; // todo: mutex lock when changing load state
+		mState = lcPieceInfoState::Loading; // todo: mutex lock when changing load state
 
 		if (IsPlaceholder())
 		{
@@ -154,7 +165,7 @@ void PieceInfo::Load()
 			lcGetPiecesLibrary()->LoadPieceData(this);
 	}
 
-	mState = LC_PIECEINFO_LOADED;
+	mState = lcPieceInfoState::Loaded;
 }
 
 void PieceInfo::ReleaseMesh()
@@ -180,7 +191,7 @@ void PieceInfo::ReleaseMesh()
 void PieceInfo::Unload()
 {
 	ReleaseMesh();
-	mState = LC_PIECEINFO_UNLOADED;
+	mState = lcPieceInfoState::Unloaded;
 	mModel = nullptr;
 
 	if (IsModel())
@@ -193,31 +204,46 @@ void PieceInfo::Unload()
 	}
 }
 
-bool PieceInfo::MinIntersectDist(const lcVector3& Start, const lcVector3& End, float& MinDistance) const
+bool PieceInfo::MinIntersectDist(const lcVector3& Start, const lcVector3& End, float& MinDistance, lcPieceInfoRayTest& PieceInfoRayTest) const
 {
 	bool Intersect = false;
 
 	if (IsPlaceholder() || IsModel() || IsProject())
 	{
 		float Distance;
-		if (!lcBoundingBoxRayIntersectDistance(mBoundingBox.Min, mBoundingBox.Max, Start, End, &Distance, nullptr) || (Distance >= MinDistance))
+		lcVector3 Plane;
+
+		if (!lcBoundingBoxRayIntersectDistance(mBoundingBox.Min, mBoundingBox.Max, Start, End, &Distance, nullptr, &Plane) || (Distance >= MinDistance))
 			return false;
 
 		if (IsPlaceholder())
+		{
+			PieceInfoRayTest.Info = this;
+			PieceInfoRayTest.Transform = lcMatrix44Identity();
+			MinDistance = Distance;
+			PieceInfoRayTest.Plane = Plane;
 			return true;
+		}
 
 		if (IsModel())
-			Intersect |= mModel->SubModelMinIntersectDist(Start, End, MinDistance);
+			Intersect |= mModel->SubModelMinIntersectDist(Start, End, MinDistance, PieceInfoRayTest);
 		else if (IsProject())
 		{
 			const lcModel* const Model = mProject->GetMainModel();
 			if (Model)
-				Intersect |= Model->SubModelMinIntersectDist(Start, End, MinDistance);
+				Intersect |= Model->SubModelMinIntersectDist(Start, End, MinDistance, PieceInfoRayTest);
 		}
 	}
 
 	if (mMesh)
-		Intersect = mMesh->MinIntersectDist(Start, End, MinDistance);
+	{
+		if (mMesh->MinIntersectDist(Start, End, MinDistance, PieceInfoRayTest.Plane))
+		{
+			PieceInfoRayTest.Info = this;
+			PieceInfoRayTest.Transform = lcMatrix44Identity();
+			Intersect = true;
+		}
+	}
 
 	return Intersect;
 }
@@ -327,7 +353,7 @@ void PieceInfo::GetPartsList(int DefaultColorIndex, bool ScanSubModels, bool Add
 		if (AddSubModels)
 			PartsList[this][DefaultColorIndex]++;
 	}
-	else if (IsProject())
+	else if (IsProject() && !IsProjectPiece())
 	{
 		const lcModel* const Model = mProject->GetMainModel();
 		if (Model)
@@ -368,7 +394,7 @@ void PieceInfo::CompareBoundingBox(const lcMatrix44& WorldMatrix, lcVector3& Min
 
 		for (int i = 0; i < 8; i++)
 		{
-			lcVector3 Point = lcMul31(Points[i], WorldMatrix);
+			const lcVector3 Point = lcMul31(Points[i], WorldMatrix);
 
 			Min = lcMin(Point, Min);
 			Max = lcMax(Point, Max);

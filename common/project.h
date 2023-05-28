@@ -35,7 +35,9 @@ public:
 	~Project();
 
 	Project(const Project&) = delete;
+	Project(Project&&) = delete;
 	Project& operator=(const Project&) = delete;
+	Project& operator=(Project&&) = delete;
 
 	const lcArray<lcModel*>& GetModels() const
 	{
@@ -91,7 +93,7 @@ public:
 	bool Export3DStudio(const QString& FileName);
 	void ExportBrickLink();
 	bool ExportCOLLADA(const QString& FileName);
-	void ExportCSV();
+	bool ExportCSV(const QString& FileName);
 	void ExportHTML(const lcHTMLExportOptions& Options);
 	bool ExportPOVRay(const QString& FileName);
 	bool ExportWavefront(const QString& FileName);

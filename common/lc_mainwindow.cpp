@@ -5,11 +5,11 @@
 #include "lc_partselectionwidget.h"
 #include "lc_timelinewidget.h"
 #include "lc_viewwidget.h"
-#include "lc_qcolorlist.h"
+#include "lc_colorlist.h"
 #include "lc_qpropertiestree.h"
 #include "lc_qutils.h"
 #include "lc_qupdatedialog.h"
-#include "lc_qaboutdialog.h"
+#include "lc_aboutdialog.h"
 #include "lc_setsdatabasedialog.h"
 #include "lc_qhtmldialog.h"
 #include "lc_renderdialog.h"
@@ -373,7 +373,7 @@ void lcMainWindow::CreateActions()
 
 void lcMainWindow::CreateMenus()
 {
-	QMenu* TransformMenu = new QMenu(tr("Transform"), this);
+    QMenu* TransformMenu = new QMenu(tr("Transform and Rotat&e"), this);
 	TransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_RELATIVE_TRANSLATION]);
 	TransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_ABSOLUTE_TRANSLATION]);
 	TransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_RELATIVE_ROTATION]);
@@ -395,7 +395,7 @@ void lcMainWindow::CreateMenus()
 	mViewpointMenu->addAction(mActions[LC_VIEW_VIEWPOINT_BOTTOM]);
 	mViewpointMenu->addAction(mActions[LC_VIEW_VIEWPOINT_HOME]);
 
-	mProjectionMenu = new QMenu(tr("Projection"), this);
+    mProjectionMenu = new QMenu(tr("Pro&jection"), this);
 	mProjectionMenu->addAction(mActions[LC_VIEW_PROJECTION_PERSPECTIVE]);
 	mProjectionMenu->addAction(mActions[LC_VIEW_PROJECTION_ORTHO]);
 
@@ -404,7 +404,7 @@ void lcMainWindow::CreateMenus()
 	mShadingMenu->addAction(mActions[LC_VIEW_SHADING_FLAT]);
 	mShadingMenu->addAction(mActions[LC_VIEW_SHADING_DEFAULT_LIGHTS]);
 
-	mToolsMenu = new QMenu(tr("Tools"), this);
+    mToolsMenu = new QMenu(tr("T&ools"), this);
 	mToolsMenu->addAction(mActions[LC_EDIT_ACTION_INSERT]);
 	mToolsMenu->addAction(mActions[LC_EDIT_ACTION_LIGHT]);
 	mToolsMenu->addAction(mActions[LC_EDIT_ACTION_SPOTLIGHT]);
@@ -565,23 +565,23 @@ void lcMainWindow::CreateMenus()
 
 void lcMainWindow::CreateToolBars()
 {
-	mSelectionModeMenu = new QMenu(tr("Selection Mode"), this);
+    mSelectionModeMenu = new QMenu(tr("&Selection Mode"), this);
 	for (int ModeIdx = LC_EDIT_SELECTION_MODE_FIRST; ModeIdx <= LC_EDIT_SELECTION_MODE_LAST; ModeIdx++)
 		mSelectionModeMenu->addAction(mActions[ModeIdx]);
 
-	QAction* SelectionModeAction = new QAction(tr("Selection Mode"), this);
+    QAction* SelectionModeAction = new QAction(tr("&Selection Mode"), this);
 	SelectionModeAction->setStatusTip(tr("Change selection mode"));
 	SelectionModeAction->setIcon(QIcon(":/resources/action_select.png"));
 	SelectionModeAction->setMenu(mSelectionModeMenu);
 
-	mTransformMenu = new QMenu(tr("Transform"), this);
+    mTransformMenu = new QMenu(tr("Transform and Rotat&e"), this);
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_RELATIVE]);
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_ABSOLUTE]);
 	mTransformMenu->addSeparator();
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_TOGETHER]);
 	mTransformMenu->addAction(mActions[LC_EDIT_TRANSFORM_SEPARATELY]);
 
-	QAction* TransformAction = new QAction(tr("Transform"), this);
+    QAction* TransformAction = new QAction(tr("Transform and Rotat&e"), this);
 	TransformAction->setStatusTip(tr("Transform Options"));
 	TransformAction->setIcon(QIcon(":/resources/edit_transform_relative.png"));
 	TransformAction->setMenu(mTransformMenu);
@@ -674,8 +674,8 @@ void lcMainWindow::CreateToolBars()
 	mColorsToolBar->setObjectName("ColorsToolbar");
 	mColorsToolBar->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 
-	mColorList = new lcQColorList();
-	connect(mColorList, SIGNAL(colorChanged(int)), this, SLOT(ColorChanged(int)));
+	mColorList = new lcColorList();
+	connect(mColorList, &lcColorList::ColorChanged, this, &lcMainWindow::ColorChanged);
 
 	QWidget* ColorWidget = new QWidget(mColorsToolBar);
 
@@ -1248,7 +1248,7 @@ void lcMainWindow::ShowUpdatesDialog()
 
 void lcMainWindow::ShowAboutDialog()
 {
-	lcQAboutDialog Dialog(this);
+	lcAboutDialog Dialog(this);
 	Dialog.exec();
 }
 
@@ -1971,6 +1971,8 @@ void lcMainWindow::UpdateSelectedObjects(bool SelectionChanged)
 		mActions[LC_PIECE_SHOW_EARLIER]->setEnabled(Flags & LC_SEL_PIECE); // FIXME: disable if current step is 1
 		mActions[LC_PIECE_SHOW_LATER]->setEnabled(Flags & LC_SEL_PIECE);
 		mActions[LC_TIMELINE_MOVE_SELECTION]->setEnabled(Flags & LC_SEL_PIECE);
+		mActions[LC_TIMELINE_MOVE_SELECTION_BEFORE]->setEnabled(Flags & LC_SEL_PIECE);
+		mActions[LC_TIMELINE_MOVE_SELECTION_AFTER]->setEnabled(Flags & LC_SEL_PIECE);
 
 		mActions[LC_PIECE_EDIT_END_SUBMODEL]->setEnabled(GetCurrentTabModel() != ActiveModel);
 	}
@@ -2081,7 +2083,7 @@ void lcMainWindow::UpdateColor()
 
 	mColorButton->setIcon(Pixmap);
 	mColorButton->setText(QString("  ") + gColorList[mColorIndex].Name);
-	mColorList->setCurrentColor(mColorIndex);
+	mColorList->SetCurrentColor(mColorIndex);
 }
 
 void lcMainWindow::UpdateUndoRedo(const QString& UndoText, const QString& RedoText)
@@ -2590,7 +2592,7 @@ void lcMainWindow::HandleCommand(lcCommandId CommandId)
 		break;
 
 	case LC_FILE_EXPORT_CSV:
-		lcGetActiveProject()->ExportCSV();
+		lcGetActiveProject()->ExportCSV(QString());
 		break;
 
 	case LC_FILE_EXPORT_POVRAY:
@@ -3411,6 +3413,14 @@ void lcMainWindow::HandleCommand(lcCommandId CommandId)
 
 	case LC_TIMELINE_MOVE_SELECTION:
 		mTimelineWidget->MoveSelection();
+		break;
+
+	case LC_TIMELINE_MOVE_SELECTION_BEFORE:
+		mTimelineWidget->MoveSelectionBefore();
+		break;
+
+	case LC_TIMELINE_MOVE_SELECTION_AFTER:
+		mTimelineWidget->MoveSelectionAfter();
 		break;
 
 	case LC_TIMELINE_SET_CURRENT:

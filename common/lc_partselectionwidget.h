@@ -28,6 +28,8 @@ struct lcPartPalette
 	std::vector<std::string> Parts;
 };
 
+class QRegularExpression;
+
 class lcPartSelectionItemDelegate : public QStyledItemDelegate
 {
 	Q_OBJECT
@@ -138,6 +140,7 @@ protected:
 	QByteArray mFilter;
 	std::unique_ptr<lcView> mView;
 	std::unique_ptr<lcModel> mModel;
+    QRegularExpression *mpRegexBrickSize;
 };
 
 class lcPartSelectionListView : public QListView
@@ -230,7 +233,10 @@ public slots:
 protected slots:
 	void DockLocationChanged(Qt::DockWidgetArea Area);
 	void FilterChanged(const QString& Text);
+	void FilterCategoriesChanged(const QString& Text);
 	void FilterTriggered();
+	void FilterCaseTriggered();
+	void FilterCategoriesTriggered();
 	void CategoryChanged(QTreeWidgetItem* Current, QTreeWidgetItem* Previous);
 	void PartChanged(const QModelIndex& Current, const QModelIndex& Previous);
 	void OptionsMenuAboutToShow();
@@ -244,6 +250,9 @@ protected:
 	bool event(QEvent* Event) override;
 
 	QTreeWidget* mCategoriesWidget;
+	QLineEdit* mFilterCategoriesWidget;
+	QAction* mFilterCategoriesAction;
+	QAction* mFilterCaseAction;
 	QLineEdit* mFilterWidget;
 	QAction* mFilterAction;
 	lcPartSelectionListView* mPartsWidget;

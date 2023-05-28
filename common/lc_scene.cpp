@@ -155,6 +155,10 @@ void lcScene::DrawOpaqueMeshes(lcContext* Context, bool DrawLit, int PrimitiveTy
 
 	Context->SetPolygonOffset(lcPolygonOffset::Opaque);
 
+	const lcPreferences& Preferences = lcGetPreferences();
+	const lcVector4 FocusedColor = lcVector4FromColor(Preferences.mObjectFocusedColor);
+	const lcVector4 SelectedColor = lcVector4FromColor(Preferences.mObjectSelectedColor);
+
 	for (const int MeshIndex : mOpaqueMeshes)
 	{
 		const lcRenderMesh& RenderMesh = mRenderMeshes[MeshIndex];
@@ -195,11 +199,11 @@ void lcScene::DrawOpaqueMeshes(lcContext* Context, bool DrawLit, int PrimitiveTy
 					break;
 
 				case lcRenderMeshState::Selected:
-					Context->SetColorIndexTinted(ColorIndex, LC_COLOR_SELECTED, 0.5f);
+					Context->SetColorIndexTinted(ColorIndex, SelectedColor, 0.5f);
 					break;
 
 				case lcRenderMeshState::Focused:
-					Context->SetColorIndexTinted(ColorIndex, LC_COLOR_FOCUSED, 0.5f);
+					Context->SetColorIndexTinted(ColorIndex, FocusedColor, 0.5f);
 					break;
 
 				case lcRenderMeshState::Faded:
@@ -231,11 +235,11 @@ void lcScene::DrawOpaqueMeshes(lcContext* Context, bool DrawLit, int PrimitiveTy
 					break;
 
 				case lcRenderMeshState::Selected:
-					Context->SetInterfaceColor(LC_COLOR_SELECTED);
+					Context->SetColor(SelectedColor);
 					break;
 
 				case lcRenderMeshState::Focused:
-					Context->SetInterfaceColor(LC_COLOR_FOCUSED);
+					Context->SetColor(FocusedColor);
 					break;
 
 				case lcRenderMeshState::Highlighted:
@@ -280,7 +284,7 @@ void lcScene::DrawOpaqueMeshes(lcContext* Context, bool DrawLit, int PrimitiveTy
 						Texture->Upload(Context);
 
 					Context->SetMaterial(TexturedMaterial);
-					Context->BindTexture2D(Texture->mTexture);
+					Context->BindTexture2D(Texture);
 				}
 				else
 				{
@@ -300,7 +304,7 @@ void lcScene::DrawOpaqueMeshes(lcContext* Context, bool DrawLit, int PrimitiveTy
 #endif
 	}
 
-	Context->BindTexture2D(0);
+	Context->ClearTexture2D();
 	Context->SetPolygonOffset(lcPolygonOffset::None);
 }
 
@@ -324,13 +328,17 @@ void lcScene::DrawTranslucentMeshes(lcContext* Context, bool DrawLit, bool DrawF
 
 	if (!DrawFadePrepass)
 	{
-		glEnable(GL_BLEND);
+		Context->EnableColorBlend(true);
 		Context->SetDepthWrite(false);
 	}
 	else
-		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		Context->EnableColorWrite(false);
 
 	Context->SetPolygonOffset(lcPolygonOffset::Translucent);
+
+	const lcPreferences& Preferences = lcGetPreferences();
+	const lcVector4 FocusedColor = lcVector4FromColor(Preferences.mObjectFocusedColor);
+	const lcVector4 SelectedColor = lcVector4FromColor(Preferences.mObjectSelectedColor);
 
 	for (const lcTranslucentMeshInstance& MeshInstance : mTranslucentMeshes)
 	{
@@ -364,11 +372,11 @@ void lcScene::DrawTranslucentMeshes(lcContext* Context, bool DrawLit, bool DrawF
 			break;
 
 		case lcRenderMeshState::Selected:
-			Context->SetColorIndexTinted(ColorIndex, LC_COLOR_SELECTED, 0.5f);
+			Context->SetColorIndexTinted(ColorIndex, SelectedColor, 0.5f);
 			break;
 
 		case lcRenderMeshState::Focused:
-			Context->SetColorIndexTinted(ColorIndex, LC_COLOR_FOCUSED, 0.5f);
+			Context->SetColorIndexTinted(ColorIndex, FocusedColor, 0.5f);
 			break;
 
 		case lcRenderMeshState::Faded:
@@ -392,7 +400,7 @@ void lcScene::DrawTranslucentMeshes(lcContext* Context, bool DrawLit, bool DrawF
 			Context->SetMaterial(TexturedMaterial);
 			VertexBufferOffset += Mesh->mNumVertices * sizeof(lcVertex);
 			Context->SetVertexFormat(VertexBufferOffset, 3, 1, 2, 0, DrawLit);
-			Context->BindTexture2D(Texture->mTexture);
+			Context->BindTexture2D(Texture);
 		}
 
 		const GLenum DrawPrimitiveType = Section->PrimitiveType & (LC_MESH_TRIANGLES | LC_MESH_TEXTURED_TRIANGLES) ? GL_TRIANGLES : GL_LINES;
@@ -403,16 +411,16 @@ void lcScene::DrawTranslucentMeshes(lcContext* Context, bool DrawLit, bool DrawF
 #endif
 	}
 
-	Context->BindTexture2D(0);
+	Context->ClearTexture2D();
 	Context->SetPolygonOffset(lcPolygonOffset::None);
 
 	if (!DrawFadePrepass)
 	{
 		Context->SetDepthWrite(true);
-		glDisable(GL_BLEND);
+		Context->EnableColorBlend(false);
 	}
 	else
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		Context->EnableColorWrite(true);
 }
 
 void lcScene::Draw(lcContext* Context) const
