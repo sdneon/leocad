@@ -308,7 +308,8 @@ void lcView::ShowContextMenu() const
 	Popup->addAction(Actions[LC_EDIT_COPY]);
 	Popup->addAction(Actions[LC_EDIT_PASTE]);
 	Popup->addAction(Actions[LC_EDIT_PASTE_STEPS]);
-	Popup->addAction(Actions[LC_PIECE_DUPLICATE]);
+    Popup->addAction(Actions[LC_PIECE_DUPLICATE]);
+    Popup->addAction(Actions[LC_PIECE_REPLACE]);
 
 	Popup->addSeparator();
 

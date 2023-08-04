@@ -519,8 +519,9 @@ void lcMainWindow::CreateMenus()
 	QMenu* PieceMenu = menuBar()->addMenu(tr("&Piece"));
 	PieceMenu->addAction(mActions[LC_PIECE_INSERT]);
 	PieceMenu->addAction(mActions[LC_PIECE_DELETE]);
-	PieceMenu->addAction(mActions[LC_PIECE_DUPLICATE]);
-	PieceMenu->addAction(mActions[LC_PIECE_PAINT_SELECTED]);
+    PieceMenu->addAction(mActions[LC_PIECE_DUPLICATE]);
+    PieceMenu->addAction(mActions[LC_PIECE_REPLACE]);
+    PieceMenu->addAction(mActions[LC_PIECE_PAINT_SELECTED]);
 	PieceMenu->addAction(mActions[LC_PIECE_ARRAY]);
 	PieceMenu->addAction(mActions[LC_PIECE_MINIFIG_WIZARD]);
 	PieceMenu->addAction(mActions[LC_PIECE_RESET_PIVOT_POINT]);
@@ -1949,7 +1950,8 @@ void lcMainWindow::UpdateSelectedObjects(bool SelectionChanged)
 
 		mActions[LC_PIECE_DELETE]->setEnabled(Flags & LC_SEL_SELECTED);
 		mActions[LC_PIECE_DUPLICATE]->setEnabled(Flags & LC_SEL_SELECTED);
-		mActions[LC_PIECE_PAINT_SELECTED]->setEnabled(Flags & LC_SEL_PIECE);
+        mActions[LC_PIECE_REPLACE]->setEnabled(Flags & LC_SEL_SELECTED);
+        mActions[LC_PIECE_PAINT_SELECTED]->setEnabled(Flags & LC_SEL_PIECE);
 		mActions[LC_PIECE_RESET_PIVOT_POINT]->setEnabled(Flags & LC_SEL_SELECTED);
 		mActions[LC_PIECE_REMOVE_KEY_FRAMES]->setEnabled(Flags & LC_SEL_SELECTED);
 		mActions[LC_PIECE_ARRAY]->setEnabled(Flags & LC_SEL_PIECE);
@@ -2840,7 +2842,12 @@ void lcMainWindow::HandleCommand(lcCommandId CommandId)
 			ActiveModel->DuplicateSelectedPieces();
 		break;
 
-	case LC_PIECE_PAINT_SELECTED:
+    case LC_PIECE_REPLACE:
+        if (ActiveModel)
+            ActiveModel->ReplaceSelectedPieces();
+        break;
+
+    case LC_PIECE_PAINT_SELECTED:
 		if (ActiveModel)
 			ActiveModel->PaintSelectedPieces();
 		break;

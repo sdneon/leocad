@@ -276,7 +276,7 @@ boolean MatchAllWords(const char *Description, const QString& Phrase)
 
 void lcPartSelectionListModel::SetFilter(const QString& Filter)
 {
-	mFilter = Filter.toLatin1();
+    mFilter = Filter.toLatin1().trimmed();
 
     //Support matching brick size specified as #x##x### (i.e. no spaces in between), to match # x ## x ###
     QRegularExpressionMatch match = mpRegexBrickSize->match(mFilter);

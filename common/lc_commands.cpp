@@ -1214,7 +1214,14 @@ const lcCommand gCommands[] =
 		QT_TRANSLATE_NOOP("Status", "Create a copy of the selected pieces"),
 		"Ctrl+D"
 	},
-	// LC_PIECE_PAINT_SELECTED
+    // LC_PIECE_REPLACE
+    {
+        QT_TRANSLATE_NOOP("Action", "Piece.Replace"),
+        QT_TRANSLATE_NOOP("Menu", "&Replace"),
+        QT_TRANSLATE_NOOP("Status", "Replace selected objects with the one in Parts panel"),
+        "Ctrl+R"
+    },
+    // LC_PIECE_PAINT_SELECTED
 	{
 		QT_TRANSLATE_NOOP("Action", "Piece.PaintSelected"),
 		QT_TRANSLATE_NOOP("Menu", "&Paint Selected"),
@@ -1343,7 +1350,7 @@ const lcCommand gCommands[] =
 	// LC_PIECE_ARRAY
 	{
 		QT_TRANSLATE_NOOP("Action", "Piece.Array"),
-		QT_TRANSLATE_NOOP("Menu", "A&rray..."),
+        QT_TRANSLATE_NOOP("Menu", "Arra&y..."),
 		QT_TRANSLATE_NOOP("Status", "Make copies of the selected pieces"),
 		""
 	},

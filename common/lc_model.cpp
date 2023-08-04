@@ -1216,6 +1216,28 @@ void lcModel::DuplicateSelectedPieces()
 	SaveCheckpoint(tr("Duplicating Pieces"));
 }
 
+void lcModel::ReplaceSelectedPieces()
+{
+    PieceInfo* CurPiece = gMainWindow->GetCurrentPieceInfo();
+    if (!CurPiece)
+        return;
+
+    for (int PieceIdx = 0; PieceIdx < mPieces.GetSize(); PieceIdx++)
+    {
+        lcPiece* Piece = mPieces[PieceIdx];
+
+        if (!Piece->IsSelected())
+            continue;
+
+        Piece->SetPieceInfo(CurPiece, QString(), true);
+    }
+
+    gMainWindow->UpdateSelectedObjects(false);
+    UpdateAllViews();
+    gMainWindow->UpdateTimeline(false, true);
+    SaveCheckpoint(tr("Replacing Pieces"));
+}
+
 void lcModel::PaintSelectedPieces()
 {
 	SetSelectedPiecesColorIndex(gMainWindow->mColorIndex);
