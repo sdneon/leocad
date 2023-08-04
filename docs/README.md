@@ -12,6 +12,8 @@ This repo is my **mod** adding these _**ease of use enhancements**_:
   * Specify brick sizes without spaces. E.g. key in just 2x2 instead of "2 x 2".
   * If exact phrase (search text) does not match, also try matching all keywords in search text. So you don't have to know exact phrasing of the part.
     * E.g. to find "Brick 5 x 5 Corner Round with Slope 45 Chamfer", you don't need to remember and key in "Corner Round with Slope" exactly. Just key in "slope corner" or any of the keywords (even partial keywords) to search for.
+* Alternative to `Edit> Replace` command: New command `Piece>Replace` which replaces selected bricks with the one in Parts panel.
+  * Hotkey: CTRL+R; mnemonic: R.
 
 Enjoy ",
 
