@@ -2338,6 +2338,11 @@ bool lcMainWindow::OpenProject(const QString& FileName)
 		lcSetProfileString(LC_PROFILE_PROJECTS_PATH, QFileInfo(LoadFileName).absolutePath());
 	}
 
+    if (LoadFileName.endsWith(".lxf", Qt::CaseInsensitive))
+    {
+        ImportLDD(LoadFileName);
+        return true;
+    }
 	return OpenProjectFile(LoadFileName);
 }
 
@@ -2418,6 +2423,22 @@ void lcMainWindow::ImportLDD()
 	}
 	else
 		delete NewProject;
+}
+
+void lcMainWindow::ImportLDD(const QString& FileName)
+{
+    if (!SaveProjectIfModified())
+        return;
+
+    Project* NewProject = new Project();
+
+    if (NewProject->ImportLDD(FileName))
+    {
+        gApplication->SetProject(NewProject);
+        lcView::UpdateProjectViews(NewProject);
+    }
+    else
+        delete NewProject;
 }
 
 void lcMainWindow::ImportInventory()

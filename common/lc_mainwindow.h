@@ -243,8 +243,9 @@ public:
 	bool OpenProject(const QString& FileName);
 	void OpenRecentProject(int RecentFileIndex);
 	void MergeProject();
-	void ImportLDD();
-	void ImportInventory();
+    void ImportLDD();
+    void ImportLDD(const QString& FileName);
+    void ImportInventory();
 	bool SaveProject(const QString& FileName);
 	bool SaveProjectIfModified();
 	bool SetModelFromFocus();

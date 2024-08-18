@@ -14,6 +14,7 @@ This repo is my **mod** adding these _**ease of use enhancements**_:
     * E.g. to find "Brick 5 x 5 Corner Round with Slope 45 Chamfer", you don't need to remember and key in "Corner Round with Slope" exactly. Just key in "slope corner" or any of the keywords (even partial keywords) to search for.
 * Alternative to `Edit> Replace` command: New command `Piece>Replace` which replaces selected bricks with the one in Parts panel.
   * Hotkey: CTRL+R; mnemonic: R.
+* Open .LXF - as an import. So you can associate .LXF files with LeoCAD, to open them easily.
 
 Enjoy ",
 
@@ -71,6 +72,57 @@ There are multiple ways to install LeoCAD on Linux.
 New users should read the online tutorial located at
 https://www.leocad.org/docs/tutorial1.html to learn how to use LeoCAD.
 
+
+# Commandline Options
+Usage: `leocad [options] [file]`
+`[options]` can be:
+* -l, --libpath <path>: Set the Parts Library location to path.
+* -i, --image <outfile.ext>: Save a picture in the format specified by ext and exit.
+* -w, --width <width>: Set the picture width.
+* -h, --height <height>: Set the picture height.
+* -f, --from <step>: Set the first step to save pictures.
+* -t, --to <step>: Set the last step to save pictures.
+* -s, --submodel <submodel>: Set the active submodel.
+* -c, --camera <camera>: Set the active camera.
+* -ss, --stud-style <id>: Set the stud style 0=No style, 1=LDraw single wire, 2=LDraw double wire, 3=LDraw raised floating, 4=LDraw raised rounded, 5=LDraw subtle rounded, 6=LEGO no logo, 7=LEGO single wire.
+* --viewpoint <front|back|left|right|top|bottom|home>: Set the viewpoint.
+* --camera-angles <latitude> <longitude>: Set the camera angles in degrees around the model.
+* --camera-position <x> <y> <z> <tx> <ty> <tz> <ux> <uy> <uz>: Set the camera position, target and up vector.
+* --camera-position-ldraw <x> <y> <z> <tx> <ty> <tz> <ux> <uy> <uz>: Set the camera position, target and up vector using LDraw coordinates.
+* --orthographic: Render images using an orthographic projection.
+* --fov <degrees>: Set the vertical field of view used to render images (< 180).
+* --zplanes <near> <far>: Set the near and far clipping planes used to render images (1 <= <near> < <far>).
+* --fade-steps: Render parts from prior steps faded.
+* --no-fade-steps: Do not render parts from prior steps faded.
+* --fade-steps-color <rgba>: Renderinng color for prior step parts (#AARRGGBB).
+* --highlight: Highlight parts in the steps they appear.
+* --no-highlight: Do not highlight parts in the steps they appear.
+* --highlight-color: Renderinng color for highlighted parts (#AARRGGBB).
+* --shading <wireframe|flat|default|full>: Select shading mode for rendering.
+* --line-width <width>: Set the width of the edge lines.
+* --aa-samples <count>: AntiAliasing sample size (1, 2, 4, or 8).
+* -nscc, --disable-stud-cylinder-color: Disable high contrast stud cylinder color.
+* -scc, --stud-cylinder-color <#AARRGGBB>: High contrast stud cylinder color.
+* -nec, --disable-edge-color: Disable high contrast edge color.
+* -ec, --edge-color <#AARRGGBB>: High contrast edge color.
+* -nbec, --disable-black-edge-color: Disable high contrast edge color for black parts.
+* -bec, --black-edge-color <#AARRGGBB>: High contrast edge color for black parts.
+* -ndec, --disable-dark-edge-color: Disable high contrast edge color for dark color parts.
+* -dec, --dark-edge-color <#AARRGGBB>: High contrast edge color for dark color parts.
+* -aec, --automate-edge-color: Enable automatically adjusted edge colors.
+* -cc, --color-contrast <float>: Color contrast value between 0.0 and 1.0.
+* -ldv, --light-dark-value <float>: Light/Dark color value between 0.0 and 1.0.
+* -obj, --export-wavefront <outfile.obj>: Export the model to Wavefront OBJ format.
+* -3ds, --export-3ds <outfile.3ds>: Export the model to 3D Studio 3DS format.
+* -dae, --export-collada <outfile.dae>: Export the model to COLLADA DAE format.
+* -csv, --export-csv <outfile.csv>: Export the list of parts used in csv format.
+* -html, --export-html <folder>: Create an HTML page for the model.
+* -v, --version: Output version information and exit.
+* -?, --help: Display this help message and exit.
+
+`[file]` can be:
+* .LDR
+* .LXF - will be auto-imported
 
 # Online Resources
 
